@@ -52,7 +52,8 @@ Image names and repository URLs already point at `Joxejaime/projects-2026`; chan
 | `kustomize build` for dev and prod (9 resources each) | Run: pass |
 | Policy checks on both rendered overlays | Run: pass |
 | 13 policy tests, including rejection cases | Run: pass |
-| kubeconform schema validation (core + Argo CD CRDs) | **Not run yet.** The schema host was unreachable from the build environment; CI runs it on every PR. |
+| GitHub Actions on the pull request: `kustomize build`, strict kubeconform schema validation (core resources and Argo CD CRDs), policy checks for dev and prod, policy-checker tests | **Run on GitHub: pass.** |
+| Automated image-tag promotion PR (`promote` job) | **Not run yet.** It only runs on `main` after project 01 publishes an image. |
 | Applied to a real cluster / Argo CD sync | **No.** Try it on kind or minikube and record what you see. |
 
 ## Next improvements

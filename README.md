@@ -78,7 +78,7 @@ Each project README has its own verified / not-verified table. In short:
 | Generated artefacts: scaffolded services pass the policy check; generated alert rules match the SLO file | Prometheus evaluating the rules and alerts firing live; Kubernetes manifests applied to a cluster |
 
 The CI workflows in `.github/workflows/` run the missing checks (Terraform, `promtool`, image scan) on first push.
-Workflow paths were adapted for this layout and have not yet run on GitHub.
+The four DevOps-series workflows (01 to 04) have run on GitHub and pass; see each project's Verification status. The workflows of the earlier projects were adapted for this layout and have not been re-checked here.
 
 ## Placeholders still to replace
 

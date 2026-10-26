@@ -21,9 +21,11 @@ or its `/metrics` endpoint, so unlike the other projects in this repository they
 
 ## Be precise about what is proven
 Each project README ends with a **Verification status** table that separates what was actually run from what was not.
-Code, unit tests, linters, rule tests and manifest policy checks were run offline. Results of the GitHub Actions
-workflows are recorded in those tables once they have run; anything still marked "Not run yet" has not been
-executed anywhere. Cloud deployment (AWS, a Kubernetes cluster) has not been done.
+Code, unit tests, linters, rule tests and manifest policy checks were run offline. The four GitHub Actions workflows
+have run on the pull request and pass (build, smoke test, Trivy gate and SBOM; `tofu validate`, TFLint and Checkov; kubeconform and
+policy checks; promtool rule tests). Still unproven: image publish and signing (runs on `main` only), `tofu plan/apply`
+against AWS, an Argo CD sync on a real cluster, the Compose stack, and Grafana rendering the dashboard. Anything marked
+"Not run" in the tables has not been executed anywhere.
 
 Run everything that is possible offline from the repository root: `./scripts/verify-devops-series.sh`
 

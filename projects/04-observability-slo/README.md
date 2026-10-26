@@ -47,7 +47,8 @@ Full walkthrough: [`docs/game-day.md`](docs/game-day.md).
 | `promtool check config` and `check rules`, `amtool check-config` | Run: pass |
 | 8 `promtool test rules` scenarios | Run: pass |
 | Generated rules and dashboard JSON in sync with their generators | Run: pass |
-| `docker compose config` | Run: pass |
+| `docker compose config` | Run: pass (also in GitHub Actions) |
+| GitHub Actions on the pull request: generated files up to date, `promtool` config/rules checks, rule unit tests, `amtool`, compose validation | **Run on GitHub: pass.** |
 | **End-to-end:** real Prometheus and Alertmanager binaries scraping the real app with injected 500s, alert fired and delivered to a webhook | Run once in the build environment, see `docs/evidence/e2e-run.md` |
 | The Docker Compose stack itself and the Grafana dashboard rendering | **Not run.** No Docker daemon in the build environment. The first `make up` is the real test; the dashboard JSON has never been rendered by Grafana. |
 

@@ -59,7 +59,8 @@ afterwards. Check current AWS pricing before leaving anything running.
 |---|---|
 | `tofu fmt -check` (parses all HCL) | Run: pass |
 | `scripts/check_wiring.py` (arguments match module variables, required vars supplied, outputs exist) | Run: pass; also proven to catch 4 injected mistakes |
-| `tofu init` / `validate` / `plan` / `apply`, TFLint, Checkov | **Not run yet.** The provider registry was unreachable from the build environment. CI runs `validate`, TFLint and Checkov on every PR (Checkov is report-only until you triage its first findings); run `plan` yourself before relying on this. |
+| GitHub Actions on the pull request: `tofu fmt`, wiring check, `tofu init` (no backend) + `validate` for `bootstrap`, `envs/dev` and `envs/prod`; TFLint; Checkov | **Run on GitHub: pass.** Validation checks syntax and provider schemas, not real AWS behaviour. Checkov is report-only until its first findings are triaged. |
+| `tofu plan` / `apply` | **Not run.** They are skipped in CI until AWS role and region variables are configured; run `plan` yourself before relying on this. |
 | Applied to a real AWS account | **No.** Nothing here has been deployed. Treat the first `plan` as the real test and expect to fix small provider-schema details. |
 
 ## Next improvements
