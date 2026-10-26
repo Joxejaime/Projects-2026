@@ -61,9 +61,8 @@ jobs:
           cp "prometheus-${PROM_VERSION}.linux-amd64/promtool" "$HOME/bin/"
           echo "$HOME/bin" >> "$GITHUB_PATH"
       - name: promtool check rules
-        run: promtool check rules projects/07-sre-reliability-lab/generated/shop-api.rules.yml
+        run: promtool check rules generated/shop-api.rules.yml
       - name: promtool check config
-        working-directory: projects/07-sre-reliability-lab
         run: |
           cp observability/prometheus.yml /tmp/prometheus.yml
           sed -i 's#/etc/prometheus/rules/\*.yml#generated/*.yml#' /tmp/prometheus.yml
