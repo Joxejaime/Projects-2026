@@ -123,6 +123,8 @@ resource "aws_route_table_association" "private" {
 # --- VPC flow logs (network audit trail) ----------------------------------
 
 resource "aws_cloudwatch_log_group" "flow" {
+  #checkov:skip=CKV_AWS_158:Flow logs use the default CloudWatch encryption; a customer-managed KMS key is a listed next improvement
+  #checkov:skip=CKV_AWS_338:Retention is a variable (flow_log_retention_days) set per environment as a cost trade-off
   name              = "/vpc/${var.name}/flow-logs"
   retention_in_days = var.flow_log_retention_days
 }

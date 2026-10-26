@@ -21,6 +21,8 @@ locals {
 # --- Logging and cluster ---------------------------------------------------
 
 resource "aws_cloudwatch_log_group" "this" {
+  #checkov:skip=CKV_AWS_158:Logs use the default CloudWatch encryption; a customer-managed KMS key is a listed next improvement
+  #checkov:skip=CKV_AWS_338:Retention is set per environment (dev 14d, prod 90d) as a cost trade-off, not hard-coded to 1 year
   name              = "/ecs/${var.name}"
   retention_in_days = var.log_retention_days
 }
@@ -134,6 +136,9 @@ resource "aws_vpc_security_group_egress_rule" "tasks_https_out" {
 # --- Load balancer -----------------------------------------------------------
 
 resource "aws_lb" "this" {
+  #checkov:skip=CKV_AWS_91:ALB access logs need an S3 bucket and policy; listed as a next improvement
+  #checkov:skip=CKV_AWS_150:Deletion protection is a variable: enabled in prod, disabled in dev so the dev stack can be destroyed
+  #checkov:skip=CKV2_AWS_28:WAF is a listed next improvement; it adds a recurring per-rule cost
   name                       = var.name
   load_balancer_type         = "application"
   internal                   = false

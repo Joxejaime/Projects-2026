@@ -67,6 +67,7 @@ module "service" {
 # --- Alerting target ---------------------------------------------------------
 
 resource "aws_sns_topic" "alerts" {
+  #checkov:skip=CKV_AWS_26:CloudWatch alarms cannot publish to a topic encrypted with the AWS-managed key; a customer-managed KMS key is a listed next improvement
   name = "${local.name}-alerts"
 }
 

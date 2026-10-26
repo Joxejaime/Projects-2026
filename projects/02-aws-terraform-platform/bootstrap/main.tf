@@ -42,6 +42,12 @@ variable "state_bucket_name" {
 }
 
 resource "aws_s3_bucket" "state" {
+  # Triaged Checkov findings (single-account state bucket; versioning, SSE, public-access-block and
+  # TLS-only access are in place). Revisit each if this bucket ever holds more than one team's state.
+  #checkov:skip=CKV_AWS_18:Access logging needs a second log bucket; state access is already audited in CloudTrail
+  #checkov:skip=CKV_AWS_144:Cross-region replication doubles cost; versioning covers accidental deletion for a portfolio account
+  #checkov:skip=CKV_AWS_145:SSE-S3 (AES256) is enabled; a customer-managed KMS key adds cost and a key-policy dependency for the apply role
+  #checkov:skip=CKV2_AWS_62:No consumer for bucket event notifications
   bucket = var.state_bucket_name
 
   # State is the source of truth for real infrastructure: never delete it by accident.
