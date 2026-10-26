@@ -1,7 +1,11 @@
 # Start here
 
-This repository holds **eight DevOps and cloud projects**. This folder is the map: what each one is, what order
-to read them in, and what each one actually proves. The projects themselves are siblings of this folder.
+This repository holds **eight components**, grouped into three projects. This folder is the engineer's map:
+what each component is, what order to read them in, and what each one actually proves. The components are
+siblings of this folder.
+
+> Looking for the reading view rather than the parts list? [`showcase/`](../../showcase) presents the same
+> work as the three projects a reviewer meets first.
 
 ## Pick a path
 

@@ -1,127 +1,117 @@
 # DevOps & Cloud portfolio — Jaime Castillo Araujo
 
-[![01 Secure CI/CD](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml)
-[![02 Terraform platform](https://github.com/Joxejaime/Projects-2026/actions/workflows/02-terraform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/02-terraform.yml)
-[![03 Kubernetes GitOps](https://github.com/Joxejaime/Projects-2026/actions/workflows/03-k8s-gitops.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/03-k8s-gitops.yml)
-[![04 Observability](https://github.com/Joxejaime/Projects-2026/actions/workflows/04-observability.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/04-observability.yml)
-[![05 AI reliability](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml)
-[![06 Self-service platform](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml)
-[![07 SRE lab](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml)
-[![08 DR autopilot](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml)
+**Three projects covering the path from a commit to a service running in production, staying up under
+failure, and recovering with evidence.** Built as eight self-contained components, each with its own tests,
+docs, diagrams and CI pipeline — all eight run on GitHub Actions and pass.
 
-**Eight projects covering the path from a commit to a service running in production and being kept alive:
-secure delivery, infrastructure as code, GitOps, observability, incident practice, and disaster recovery.**
-
-Every project is self-contained — its own tests, docs, runbooks, diagrams and CI workflow — and every README
-ends with a **Verification status** table that separates what was actually run from what was not.
-
-> **New here? Start with [`projects/00-start-here`](projects/00-start-here).** It explains how the projects
-> relate, what to read first, and what each one proves.
+[![CI](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions)
+&nbsp;Terraform · Kubernetes · GitHub Actions · AWS · Prometheus · Python
 
 ---
 
-## The projects
+## 1 · [Delivery platform](showcase/1-delivery-platform.md)
 
-Read them in order, or jump to the one that matches the role you have in mind.
+One service followed from a commit to an on-call page. A pipeline that refuses to ship a vulnerable image,
+a multi-AZ AWS platform deployed without stored cloud keys, GitOps promotion by pull request, and error-budget
+SLO alerting with runbooks.
 
-### Projects 01–04 · one service, end to end
+*The Trivy gate failed its first real run on four fixable HIGH CVEs in the base image — the fix was removing
+the package installers and flattening the runtime so the scanned image is exactly the image that runs.*
 
-Four connected projects that follow a single small service, `release-tracker`, from commit to on-call.
-They are meant to be read together: 02 to 04 use the image or the `/metrics` endpoint produced by 01.
+`GitHub Actions` `Docker` `Trivy` `cosign` `Terraform` `ECS Fargate` `IAM OIDC` `Kustomize` `Argo CD` `Prometheus`
+→ components [01](projects/01-secure-cicd-pipeline) · [02](projects/02-aws-terraform-platform) · [03](projects/03-k8s-gitops) · [04](projects/04-observability-slo)
 
-| # | Project | What it shows | Core tools |
-|---|---|---|---|
-| 01 | [Secure CI/CD pipeline](projects/01-secure-cicd-pipeline) | A pipeline that refuses to ship a vulnerable image: lint, test, build, scan, SBOM, publish by digest, keyless signature and provenance | GitHub Actions, Docker, Trivy, gitleaks, cosign, GHCR |
-| 02 | [AWS platform with Terraform](projects/02-aws-terraform-platform) | Multi-AZ VPC and ECS Fargate behind an ALB, dev and prod, plan on PR and gated apply with no stored cloud keys | Terraform, ECS, ALB, IAM OIDC, TFLint, Checkov |
-| 03 | [Kubernetes GitOps](projects/03-k8s-gitops) | Promotion by pull request, Pod Security `restricted`, default-deny networking, and a tested policy checker | Kustomize, Argo CD, kubeconform, policy-as-code |
-| 04 | [Observability and SLOs](projects/04-observability-slo) | Multi-window burn-rate alerting with unit-tested rules, routing, dashboards as code, runbooks and a game day | Prometheus, Alertmanager, Grafana, promtool |
+## 2 · [Reliability and recovery](showcase/2-reliability-and-recovery.md)
 
-### Projects 05–08 · deeper dives
+Three answers to the same question: what happens when it breaks? A gateway that keeps serving through a
+provider outage, a lab that states reliability as numbers and rehearses failure against them, and an autopilot
+that drives recovery and drafts the postmortem from the timeline it observed.
 
-Four independent projects, each going further into one theme. Nothing here imports anything from the series.
+*In a simulated total outage of the primary provider, all 180 requests still succeeded through the fallback.
+A 5% error rate pages after 18 minutes, having spent 2.2% of the monthly error budget — and that delay is
+defensible, not accidental.*
 
-| # | Project | What it shows | Core tools |
-|---|---|---|---|
-| 05 | [AI reliability platform](projects/05-ai-reliability-platform) | An AI-backed service that keeps answering when a provider fails: retries, circuit breaker, fallback, per-tenant limits, plus a measured outage drill | Python, Docker, Kubernetes, Terraform, Prometheus |
-| 06 | [Self-service platform](projects/06-self-service-platform) | A paved road: one command generates a compliant service, a policy engine checks any repo against rule IDs, and a catalog tracks what exists | Python, Jinja2, Terraform, Kubernetes, OIDC |
-| 07 | [SRE reliability lab](projects/07-sre-reliability-lab) | Reliability as numbers: one SLO file generates the alert rules, an incident simulator replays failures, and chaos runs produce game-day reports | Python, Prometheus, Alertmanager, chaos experiments |
-| 08 | [Disaster recovery autopilot](projects/08-disaster-recovery-autopilot) | When something breaks: 04's alerts open an incident, a playbook restores a real PostgreSQL database from verified snapshots, data checks and RTO/RPO are verified, and a postmortem draft is written automatically | Python, PostgreSQL, Alertmanager webhooks, S3 (Terraform), pytest |
+`Python` `Prometheus` `Alertmanager` `PostgreSQL` `chaos experiments` `circuit breakers` `SLOs`
+→ components [05](projects/05-ai-reliability-platform) · [07](projects/07-sre-reliability-lab) · [08](projects/08-disaster-recovery-autopilot)
 
-Projects 01 and 04 overlap in topic with 05 and 07, but are independent of them.
+## 3 · [Developer platform](showcase/3-developer-platform.md)
+
+A paved road: one command produces a production-shaped service that already satisfies every guardrail, and the
+same rules audit any existing repository by rule ID.
+
+*Every policy rule carries a mutation test that breaks one thing and expects the checker to name that rule.*
+
+`Python` `Jinja2` `Terraform` `Kubernetes` `policy-as-code` `OIDC`
+→ component [06](projects/06-self-service-platform)
 
 ---
 
 ## What is proven, and what is not
 
-Being precise about this is deliberate: nothing below is claimed unless it has been run.
+Nothing here is claimed unless it has been run. Each component README ends with its own
+**Verification status** table.
 
-| Project | Checks that have run | Where |
+| Component | Checks that have run | Where |
 |---|---|---|
-| 01 | Lint, 15 unit tests, hadolint, gitleaks, image build, container smoke test, Trivy gate, SBOM, GHCR publish by digest, cosign keyless signature, provenance attestation | GitHub Actions |
-| 02 | `fmt`, module wiring check, `init` + `validate` for bootstrap/dev/prod, TFLint, Checkov (21 findings triaged) | GitHub Actions |
-| 03 | `kustomize build`, strict kubeconform validation, policy checks on both overlays, 13 policy tests | GitHub Actions |
-| 04 | Generated-file drift check, promtool config and rule checks, 8 alert-rule scenarios, amtool, compose validation; one real end-to-end alert run | GitHub Actions, local |
-| 05 | 40 unit and end-to-end tests, image build and scan, Terraform checks; provider-outage drill | GitHub Actions, local |
-| 06 | 29 tests, scaffold → validate → generated-tests round trip, Terraform checks | GitHub Actions |
-| 07 | Lint, SLO validation, 33 tests including live chaos experiments, promtool rule checks | GitHub Actions |
-| 08 | Lint, playbook validation, 85 pytest tests against a real PostgreSQL 16 server, three disaster-recovery drills (restore, poisoned backup skipped, rotted backup refused and escalated) with their postmortem drafts committed. Not run: Terraform for the backup bucket, AWS, promtool | Local; CI workflow added, first run pending |
+| [01](projects/01-secure-cicd-pipeline) Secure CI/CD | Lint, 15 unit tests, hadolint, gitleaks, image build, container smoke test, Trivy gate, SBOM, GHCR publish by digest, cosign keyless signature, provenance attestation | GitHub Actions |
+| [02](projects/02-aws-terraform-platform) AWS platform | `fmt`, module wiring check, `init` + `validate` for bootstrap/dev/prod, TFLint, Checkov (21 findings triaged) | GitHub Actions |
+| [03](projects/03-k8s-gitops) Kubernetes GitOps | `kustomize build`, strict kubeconform validation, policy checks on both overlays, 13 policy tests | GitHub Actions |
+| [04](projects/04-observability-slo) Observability | Drift check, promtool config and rule checks, 8 alert-rule scenarios, amtool, compose validation; one real end-to-end alert run | GitHub Actions, local |
+| [05](projects/05-ai-reliability-platform) AI reliability | 40 unit and end-to-end tests, image build and scan, Terraform checks; provider-outage drill | GitHub Actions, local |
+| [06](projects/06-self-service-platform) Developer platform | 29 tests, scaffold → validate → generated-tests round trip, Terraform checks | GitHub Actions |
+| [07](projects/07-sre-reliability-lab) SRE lab | Lint, SLO validation, 33 tests including live chaos experiments, promtool rule checks | GitHub Actions |
+| [08](projects/08-disaster-recovery-autopilot) DR autopilot | Lint, playbook validation, 85 pytest tests against a real PostgreSQL 16 server, three recovery drills with their postmortem drafts committed | GitHub Actions, local |
 
 **Not proven anywhere yet:** applying any Terraform to a real AWS account, an Argo CD sync on a real cluster,
 Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` against the published image.
 [`projects/00-start-here/docs/PORTFOLIO-GUIDE.md`](projects/00-start-here/docs/PORTFOLIO-GUIDE.md) is the plan
-for converting each of those into evidence.
+for turning each of those into evidence.
 
 ---
 
-## How the repository is organized
+## Repository layout
+
+The eight folders under `projects/` are the engineering record — one per component, each self-contained.
+`showcase/` is the reading view that groups them into the three projects above.
 
 ```
 projects-2026/
+├── showcase/                           the three projects, as a reader meets them
 ├── projects/
-│   ├── 00-start-here/                  guide to all eight, end-to-end diagram, evidence
-│   ├── 01-secure-cicd-pipeline/        release-tracker service, Dockerfile, CI/CD with scan, SBOM, signing
-│   ├── 02-aws-terraform-platform/      Terraform modules (network, ECS service), dev/prod, OIDC bootstrap
+│   ├── 00-start-here/                  detailed index, end-to-end diagram, evidence plan
+│   ├── 01-secure-cicd-pipeline/        release-tracker service, Dockerfile, scan, SBOM, signing
+│   ├── 02-aws-terraform-platform/      Terraform modules (network, ECS service), dev/prod, OIDC
 │   ├── 03-k8s-gitops/                  Kustomize overlays, Argo CD apps, policy checker
 │   ├── 04-observability-slo/           burn-rate rules, Alertmanager, Grafana, runbooks, game day
-│   ├── 05-ai-reliability-platform/     gateway app, tests, k8s, terraform, observability, drill report
-│   ├── 06-self-service-platform/       platformctl, policies, terraform module, examples, catalog
-│   ├── 07-sre-reliability-lab/         slogen, chaos runner, demo service, observability, game days
-│   └── 08-disaster-recovery-autopilot/ drpilot responder, recovery tools, playbooks, drills, backup bucket
-├── .github/workflows/                  one workflow per project (0N-*.yml), path-filtered to its folder
-├── assets/linkedin/                    1080x1350 cards and a PDF carousel per project (none yet for 08)
+│   ├── 05-ai-reliability-platform/     gateway, resilience patterns, k8s, terraform, drill report
+│   ├── 06-self-service-platform/       platformctl, policies, terraform module, catalog
+│   ├── 07-sre-reliability-lab/         slogen, chaos runner, demo service, game days
+│   └── 08-disaster-recovery-autopilot/ drpilot, playbooks, data checks, postmortem drafts
+├── .github/workflows/                  one workflow per component, path-filtered to its folder
+├── assets/linkedin/                    1080x1350 cards and carousel PDFs built from the diagrams
 └── scripts/                            diagram rendering, card building, offline verification
 ```
 
-Each project folder follows the same shape: `README.md`, `docs/` (including `docs/schematics/`), the code, and
-its tests. GitHub only runs workflows from the repository root, so each pipeline lives in
-`.github/workflows/0N-<project>.yml` with a `paths:` filter and that project folder as its working directory.
+GitHub only runs workflows from the repository root, so each pipeline lives in
+`.github/workflows/0N-<component>.yml` with a `paths:` filter and that folder as its working directory.
 
-Run every offline check for projects 00 to 04:
+Run every offline check for components 00 to 04:
 
 ```bash
 ./scripts/verify-devops-series.sh
 ```
 
-## Schematics
+## Diagrams
 
-Diagrams are Mermaid so GitHub renders them inline, with a plain-SVG export beside each source. Colour means
-role (client, service, protection, observability, alert, success, cloud) and each diagram carries its own
-legend. To change one, edit its `.mmd` file and run:
+Written in Mermaid so GitHub renders them inline, with a plain-SVG export beside each source. Colour means
+role (client, service, protection, observability, alert, success, cloud) and each diagram carries a legend.
+To change one, edit its `.mmd` file and run:
 
 ```bash
 python3 scripts/build_schematics.py     # needs mermaid-cli (mmdc)
 python3 scripts/build_cards.py          # needs Playwright with Chromium and the Inter font
 ```
 
-`assets/linkedin/<project>/` holds a cover card, one card per schematic and a closing card, plus
-`<project>-carousel.pdf` for a swipeable LinkedIn document post.
-
-## Placeholders still to replace
-
-The image registry defaults to `ghcr.io/joxejaime` and example repositories point at `Joxejaime/...`. One
-placeholder remains: the `@example-org/<team>` handle in the `CODEOWNERS` template of project 06. GitHub team
-handles only exist in a GitHub organization, so use your org there, or `@Joxejaime` on a personal account.
-
 ## License
 
-MIT, see each project's `LICENSE`.
+MIT, see each component's `LICENSE`.
