@@ -59,9 +59,16 @@ afterwards. Check current AWS pricing before leaving anything running.
 |---|---|
 | `tofu fmt -check` (parses all HCL) | Run: pass |
 | `scripts/check_wiring.py` (arguments match module variables, required vars supplied, outputs exist) | Run: pass; also proven to catch 4 injected mistakes |
-| GitHub Actions on the pull request: `tofu fmt`, wiring check, `tofu init` (no backend) + `validate` for `bootstrap`, `envs/dev` and `envs/prod`; TFLint; Checkov | **Run on GitHub: pass.** Validation checks syntax and provider schemas, not real AWS behaviour. Checkov is report-only until its first findings are triaged. |
+| GitHub Actions on the pull request: `tofu fmt`, wiring check, `tofu init` (no backend) + `validate` for `bootstrap`, `envs/dev` and `envs/prod`; TFLint; Checkov | **Run on GitHub: pass.** Validation checks syntax and provider schemas, not real AWS behaviour. Checkov's first 21 findings were triaged: each is skipped inline (`#checkov:skip=ID:reason`) with a written reason, and the scan stays report-only (`soft_fail`) until you decide to make it gate merges. |
 | `tofu plan` / `apply` | **Not run.** They are skipped in CI until AWS role and region variables are configured; run `plan` yourself before relying on this. |
 | Applied to a real AWS account | **No.** Nothing here has been deployed. Treat the first `plan` as the real test and expect to fix small provider-schema details. |
+
+### Checkov triage
+The first scan reported 21 findings. None were hidden: every skip sits next to its resource with the reason.
+Accepted as cost/scope trade-offs for a portfolio account: S3 access logging, replication and KMS on the state bucket
+(SSE-S3, versioning and public-access-block are on), KMS on log groups and the SNS topic (CloudWatch alarms cannot
+publish to an AWS-managed-key topic), per-environment log retention, ALB access logs and WAF, and ALB deletion
+protection (a variable: on in prod, off in dev). Those that are real hardening work are listed below.
 
 ## Next improvements
 Remote module versioning, per-environment IAM boundary for the apply role, WAF on the ALB, Secrets
