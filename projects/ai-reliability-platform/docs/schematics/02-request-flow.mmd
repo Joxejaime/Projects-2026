@@ -1,33 +1,30 @@
 %% title: Request decision flow
-%% caption: The order of checks in gateway/router.py. Each terminal state is a label on gateway_requests_total, which the SLO is computed from. Defaults: 2.0 s request deadline, 0.8 s per attempt, 3 attempts per provider, full-jitter backoff (base 0.05 s, cap 0.4 s).
-flowchart TD
-    start(["POST /v1/chat"]) --> rl{"Tenant under<br/>rate limit?"}
+%% headline: Every request takes one of six paths, and each one is measured
+%% takeaway: Limits first, then cache, then the primary provider, then the fallback.
+%% legend: entry=Request,guard=Check,app=Provider call,ok=Success,data=Fallback success,alert=Rejected
+%% caption: The order of checks in gateway/router.py. Each terminal state is a label on gateway_requests_total, which the SLO is computed from. Defaults: 2.0 s request deadline, 0.8 s per attempt, 3 attempts per provider, full-jitter backoff (base 0.05 s, cap 0.4 s). A provider is skipped when its circuit is open or its error is not retryable.
+flowchart TB
+    start(["POST /v1/chat"]) --> rl{{"Under the tenant<br/>rate limit?"}}
     rl -- no --> r429a["429 rate_limited"]
-    rl -- yes --> bud{"Tenant has<br/>token budget?"}
+    rl -- yes --> bud{{"Token budget<br/>left?"}}
     bud -- no --> r429b["429 budget_exceeded"]
-    bud -- yes --> cache{"Cache hit?"}
-    cache -- yes --> okc["200 outcome=cached"]
-    cache -- no --> p["Try primary provider"]
+    bud -- yes --> cache{{"Cache hit?"}}
+    cache -- yes --> okc["200 cached"]
+    cache -- no --> p["Primary provider<br/>circuit breaker check, up to 3 attempts<br/>jittered backoff, 2 s deadline"]
+    p -- success --> store["200 ok<br/>cache and charge tokens"]
+    p -- "failed or circuit open" --> f["Fallback provider<br/>same retries and breaker"]
+    f -- success --> degraded["200 degraded<br/>served by the fallback"]
+    f -- failed --> r503["503 upstream_unavailable"]
 
-    p --> pb{"Breaker<br/>allows call?"}
-    pb -- "no, open" --> f["Try fallback provider"]
-    pb -- yes --> pcall["Call provider<br/>attempt timeout 0.8 s"]
-    pcall --> pres{"Result"}
-    pres -- success --> store
-    pres -- "retryable error" --> retry{"Attempts left and<br/>deadline allows?"}
-    retry -- yes --> pcall
-    retry -- no --> f
-    pres -- "not retryable" --> f
-
-    f --> fres{"Fallback<br/>succeeds?"}
-    fres -- yes --> degraded["Store + charge budget<br/>200 outcome=degraded"]
-    fres -- no --> r503["503 upstream_unavailable<br/>outcome=failed"]
-
-    store["Store in cache, charge tokens<br/>200 outcome=ok"]
-
-    classDef good fill:#d8f3dc,stroke:#2d6a4f,color:#1b4332
-    classDef warn fill:#fff3bf,stroke:#b08900,color:#5c4800
-    classDef bad fill:#ffe0e0,stroke:#c92a2a,color:#7a1c1c
-    class okc,store good
-    class degraded warn
-    class r429a,r429b,r503 bad
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class start entry
+    class rl,bud,cache guard
+    class p,f app
+    class r429a,r429b,r503 alert
+    class okc,store ok
+    class degraded data

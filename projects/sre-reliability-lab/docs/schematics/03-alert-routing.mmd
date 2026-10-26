@@ -1,15 +1,27 @@
 %% title: Alert routing and the response loop
+%% headline: Pages wake someone. Tickets can wait.
+%% takeaway: Alertmanager routing, runbooks, postmortems and the action items that feed back into alerts.
+%% legend: entry=Alert,guard=Routing,alert=Page,data=Ticket,app=Human response,ok=Learning
 %% caption: observability/alertmanager.yml plus the docs. Pages go to the pager receiver and repeat hourly; everything else goes to the ticket receiver every 4 h. While a page is firing for an SLO, its ticket-level alerts are inhibited. Receiver URLs are placeholders: swap in PagerDuty, Opsgenie or Slack. The postmortems folder holds only a template, because no real incident has happened.
-flowchart LR
-    alert(["Alert from Prometheus<br/>labels: service, slo, severity"]) --> group["Group by service + slo<br/>wait 30 s, interval 5 m"]
-    group --> sev{"severity"}
-    sev -- "page" --> pager["Receiver: pager<br/>repeat every 1 h"]
-    sev -- "other, e.g. ticket" --> ticket["Receiver: ticket<br/>repeat every 4 h"]
-    pager -. "inhibits ticket alerts<br/>with same service + slo" .-> ticket
+flowchart TB
+    alert(["Alert from Prometheus<br/>labels: service, slo, severity"]) --> group["Alertmanager groups by<br/>service and SLO"]
+    group --> sev{{"Severity?"}}
+    sev -- page --> pager["Pager receiver<br/>repeats every hour"]
+    sev -- ticket --> ticket["Ticket receiver<br/>repeats every 4 hours"]
+    pager -. "inhibits tickets for the same SLO" .-> ticket
+    pager --> human["On-call engineer follows the<br/>runbook linked in the alert, mitigates"]
+    human --> pm["Postmortem and action items<br/>new SLO, alert or runbook"]
+    pm -.-> alert
 
-    pager --> human["On-call engineer"]
-    human --> rb["Runbook linked in the alert<br/>docs/runbooks/checkout-errors.md<br/>docs/runbooks/checkout-latency.md"]
-    rb --> mit["Mitigate"]
-    mit --> pm["Postmortem<br/>postmortems/template.md"]
-    pm --> act["Action items"]
-    act -. "new SLO, alert or runbook" .-> alert
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class alert entry
+    class group,sev guard
+    class pager alert
+    class ticket data
+    class human app
+    class pm ok

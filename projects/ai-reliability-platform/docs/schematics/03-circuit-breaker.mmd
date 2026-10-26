@@ -1,4 +1,7 @@
 %% title: Circuit breaker states
+%% headline: A circuit breaker stops hammering a provider that is down
+%% takeaway: Five failures open it. After 15 seconds one probe call decides whether to close it.
+%% legend: ok=Calls flow,alert=Calls rejected,data=One probe allowed
 %% caption: gateway/resilience.py. Defaults from gateway/config.py: 5 consecutive failures to open, 15 s before a probe. A provider rejecting a bad request counts as a success, because it is not a health signal. The numeric state is exported as gateway_circuit_state, and the PrimaryProviderCircuitOpen alert fires when the primary stays in state 2 (open) for 1 minute.
 stateDiagram-v2
     [*] --> CLOSED
@@ -10,3 +13,10 @@ stateDiagram-v2
     CLOSED: CLOSED<br/>calls flow normally
     OPEN: OPEN<br/>calls rejected immediately<br/>traffic goes to fallback
     HALF_OPEN: HALF_OPEN<br/>one probe call allowed
+
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class CLOSED ok
+    class OPEN alert
+    class HALF_OPEN data

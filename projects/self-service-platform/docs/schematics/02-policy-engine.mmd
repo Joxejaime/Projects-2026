@@ -1,23 +1,28 @@
 %% title: Policy-as-code validation
+%% headline: Guardrails as code, each rule with a stable ID
+%% takeaway: Spec, Kubernetes, Dockerfile and CI rules run on any repo. Errors fail the build.
+%% legend: entry=Command,guard=Rules,data=Policy config and findings,alert=Fails,ok=Passes
 %% caption: platformctl/policy.py. validate_repo reads service.yaml first (its tier sets the expectations), then checks each file type. Every finding has a stable ID. Errors fail the command (exit 1); warnings fail only with --strict. Policy values default to built-ins and can be overridden with --policy policies/default.yaml; unknown keys are rejected.
-flowchart TD
-    repo(["platformctl validate PATH"]) --> spec{"service.yaml<br/>present?"}
-    spec -- no --> s0["SPEC000 error: stop"]
-    spec -- yes --> specrules["Spec rules SPEC001-SPEC010<br/>required fields, unknown keys, name,<br/>owner team-*, tier, port, replicas, language, SLO"]
-
-    specrules --> k["k8s/*.yaml"]
-    specrules --> d["Dockerfile"]
-    specrules --> w[".github/workflows/*.yml"]
-
-    k --> krules["K8S001 pinned image tag<br/>K8S002 allowed registry<br/>K8S003 resource requests/limits<br/>K8S004 runAsNonRoot<br/>K8S005 no privilege escalation<br/>K8S006 read-only root FS warn<br/>K8S007 readinessProbe<br/>K8S008 not privileged, no host access<br/>K8S009 replicas >= tier minimum<br/>K8S010 required labels<br/>K8S011 livenessProbe warn"]
-    d --> drules["DOCK001 non-root USER<br/>DOCK002 pinned base image<br/>DOCK003 HEALTHCHECK warn<br/>DOCK000 missing file warn"]
-    w --> wrules["CI001 permissions block warn<br/>CI002 action version pin"]
-
-    krules --> out
+flowchart TB
+    repo(["platformctl validate PATH"]) --> specrules["service.yaml<br/>SPEC001-SPEC010<br/>required fields, name, owner team-*,<br/>tier, port, replicas, SLO"]
+    specrules --> krules["Kubernetes manifests<br/>K8S001-K8S011<br/>pinned image tag, allowed registry,<br/>resource limits, non-root,<br/>no privilege escalation, probes,<br/>replicas at least tier minimum, labels"]
+    specrules --> drules["Dockerfile<br/>DOCK001-DOCK003<br/>non-root USER, pinned base image,<br/>HEALTHCHECK"]
+    specrules --> wrules["CI workflows<br/>CI001-CI002<br/>permissions block,<br/>pinned action versions"]
+    pol["policies/default.yaml<br/>allowed registries, required labels,<br/>minimum replicas by tier"] -.-> krules
+    krules --> out["Findings<br/>text or JSON"]
     drules --> out
     wrules --> out
-    out["Findings list<br/>(text or --format json)"] --> exit{"Any errors?<br/>or warnings with --strict?"}
+    out --> exit{{"Errors, or warnings<br/>with --strict?"}}
     exit -- yes --> bad(["exit 1"])
     exit -- no --> good(["exit 0"])
 
-    pol["policies/default.yaml<br/>allowed registries, required labels,<br/>min replicas by tier"] -.-> krules
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class repo entry
+    class specrules,krules,drules,wrules,exit guard
+    class pol,out data
+    class bad alert
+    class good ok

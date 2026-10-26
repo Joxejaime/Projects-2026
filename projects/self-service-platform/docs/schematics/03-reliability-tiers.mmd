@@ -1,0 +1,28 @@
+%% title: Reliability tiers
+%% headline: One choice, the reliability tier, sets the defaults
+%% takeaway: critical, standard or best-effort decides replicas, resources, SLO and disruption budget.
+%% legend: entry=Developer choice,cloud=critical,app=standard,neutral=best-effort,data=Generated defaults
+%% caption: A tier is the only reliability choice a developer makes; defaults for replicas, resources, SLO and disruption budget follow from it (platformctl/models.py TIER_DEFAULTS). The K8S009 rule rejects manifests with fewer replicas than the tier minimum.
+flowchart TB
+    pick["service.yaml<br/>tier: critical, standard or best-effort"]
+    crit["critical<br/>3 replicas, SLO 99.95%<br/>disruption budget: 2 always up<br/>CPU 250m-1000m, memory 256-512Mi"]
+    std["standard<br/>2 replicas, SLO 99.9%<br/>disruption budget: 1 always up<br/>CPU 100m-500m, memory 128-256Mi"]
+    be["best-effort<br/>1 replica, SLO 99.0%<br/>no disruption budget<br/>CPU 50m-250m, memory 64-128Mi"]
+    out["Generated Deployment and PDB<br/>K8S009 enforces the replica minimum"]
+    pick --> crit
+    pick --> std
+    pick --> be
+    crit --> out
+    std --> out
+    be --> out
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef cloud fill:#FFEDD5,stroke:#EA580C,stroke-width:2.5px,color:#5A2300
+    classDef neutral fill:#F1F5F9,stroke:#64748B,stroke-width:2.5px,color:#0F172A
+    class pick entry
+    class crit cloud
+    class std app
+    class be neutral
+    class out data

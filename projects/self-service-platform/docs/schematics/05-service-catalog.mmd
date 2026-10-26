@@ -1,0 +1,26 @@
+%% title: Service catalog
+%% headline: A service catalog that validates as it lists
+%% takeaway: Scan every service.yaml, validate each one, and publish markdown or JSON. Errors fail CI.
+%% legend: entry=Input,app=Processing,data=Outputs,guard=Check,alert=Fails,ok=Passes
+%% caption: platformctl/catalog.py. The catalog is built by scanning a directory of service.yaml files and running the same validation on each; a duplicate service name is CAT001. The command exits 1 if any service has an error, so it can gate CI.
+flowchart TB
+    svcs["Directory of services<br/>each with a service.yaml"] --> collect["catalog.collect"]
+    collect --> val["Validate each service<br/>plus duplicate-name check CAT001"]
+    val --> md["catalog.md<br/>service, owner, tier, SLO,<br/>replicas, environments, spec path"]
+    val --> js["catalog.json"]
+    val --> rc{{"Any errors?"}}
+    rc -- yes --> r1(["exit 1"])
+    rc -- no --> r0(["exit 0"])
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class svcs entry
+    class collect,val app
+    class md,js data
+    class rc guard
+    class r1 alert
+    class r0 ok

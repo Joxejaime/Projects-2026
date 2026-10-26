@@ -1,38 +1,40 @@
 %% title: AWS deployment (Terraform)
+%% headline: The AWS deployment: private tasks behind a load balancer
+%% takeaway: ECS Fargate, ALB, NAT, autoscaling and four CloudWatch alarms, all in Terraform (not yet applied).
+%% legend: entry=Internet,app=Load balancer and tasks,cloud=AWS service,obs=Monitoring,alert=Notification
 %% caption: What terraform/ declares. Not applied in the build environment, so treat it as reviewed but unproven. Without a certificate_arn the ALB forwards plain HTTP on port 80; with one it serves HTTPS on 443 and port 80 redirects to it (301). Tasks run in private subnets and reach the outside world only through the NAT gateway on port 443.
 flowchart TB
     internet(["Internet clients"]) --> alb
-
     subgraph vpc["VPC"]
         subgraph pub["Public subnets"]
-            alb["Application Load Balancer<br/>listener :80, plus :443 if a certificate is set"]
-            nat["NAT gateway + Elastic IP"]
+            alb["Application Load Balancer<br/>:80, plus :443 with a certificate"]
+            nat["NAT gateway"]
         end
         subgraph priv["Private subnets"]
-            direction LR
-            t1["ECS Fargate task<br/>gateway"]
-            t2["ECS Fargate task<br/>gateway"]
+            t1["ECS Fargate task"]
+            t2["ECS Fargate task"]
         end
-        alb -->|"security group: ALB to tasks only"| t1
+        alb -->|"ALB security group only"| t1
         alb --> t2
         t1 -->|"egress 443 only"| nat
         t2 --> nat
     end
+    nat --> out(["Provider and AWS APIs"])
+    ecr[("ECR repository, CloudWatch logs,<br/>Auto Scaling on CPU, IAM roles")]
+    ecr -.-> priv
+    al["4 CloudWatch alarms<br/>5xx, p95 latency, unhealthy hosts, CPU"] --> sns["SNS topic to email"]
+    priv -.-> al
 
-    nat --> out(["Outbound: AWS APIs and provider endpoints"])
-
-    subgraph support["Supporting resources"]
-        direction LR
-        ecr[("ECR repository<br/>lifecycle policy")]
-        logs["CloudWatch log group<br/>JSON logs from stdout"]
-        asg["App Auto Scaling<br/>target tracking on CPU"]
-        iam["IAM task execution role<br/>and task role"]
-    end
-    support -. "image pull, logs, scaling, permissions" .-> priv
-
-    subgraph alarms["Monitoring"]
-        direction LR
-        al["CloudWatch alarms<br/>ALB 5xx, p95 latency,<br/>unhealthy hosts, CPU high"] --> sns["SNS topic"] --> mail["Email subscription"]
-    end
-    alb -. "metrics" .-> al
-    priv -. "metrics" .-> al
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef obs fill:#EDE9FE,stroke:#7C3AED,stroke-width:2.5px,color:#2E1065
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef cloud fill:#FFEDD5,stroke:#EA580C,stroke-width:2.5px,color:#5A2300
+    class internet,out entry
+    class alb,t1,t2 app
+    class nat,ecr cloud
+    class al obs
+    class sns alert
+    style vpc fill:#F8FAFC,stroke:#CBD5E1,stroke-width:2px,color:#334155
+    style pub fill:#EFF6FF,stroke:#93C5FD,stroke-width:2px,color:#1E3A8A
+    style priv fill:#F0FDF4,stroke:#86EFAC,stroke-width:2px,color:#166534

@@ -18,7 +18,7 @@ flowchart LR
     S[(All service.yaml files)] -->|platformctl catalog| C[Service catalog]
 ```
 
-> **Schematics:** [all diagrams for this project](docs/schematics/README.md) (golden path, policy engine, tiers and catalog, Terraform module).
+> **Schematics:** [all diagrams for this project](docs/schematics/README.md) (golden path, policy engine, reliability tiers, Terraform module, service catalog).
 
 ## Try it (about a minute, Python 3.11+, needs `pyyaml` and `jinja2`)
 

@@ -1,27 +1,16 @@
 %% title: Delivery pipeline (GitHub Actions)
-%% caption: .github/workflows/ai-reliability-platform.yml at the repository root. The three jobs run on every push to main and pull request touching this project; the image job waits for tests. Only a tag named ai-reliability-platform-vX.Y.Z publishes to GHCR.
-flowchart LR
-    trigger(["push to main or pull request<br/>paths: this project"])
-
-    subgraph test["Job: test"]
-        direction TB
-        t1["ruff check + format"] --> t2["unittest: unit + end-to-end"] --> t3["validate_configs.py<br/>rules, dashboards, k8s hardening"] --> t4["docker compose config"]
-    end
-
-    subgraph tf["Job: terraform"]
-        direction TB
-        f1["fmt -check"] --> f2["init -backend=false"] --> f3["validate"]
-    end
-
-    subgraph img["Job: image (needs test)"]
-        direction TB
-        i1["Build image"] --> i2["Trivy image scan<br/>HIGH/CRITICAL fails the build"] --> i3["Trivy config scan<br/>report only"]
-    end
-
-    tag{"Tag ai-reliability-platform-v*?"}
-    release["Push to GHCR<br/>with provenance + SBOM"]
-    done(["Merge allowed"])
-
+%% headline: Every change is linted, tested, scanned and validated
+%% takeaway: Tests, Terraform checks and a Trivy image scan run before anything is released.
+%% legend: entry=Trigger,app=Test job,guard=Terraform job,cloud=Image job,data=Release gate,ok=Done
+%% caption: .github/workflows/ai-reliability-platform.yml at the repository root. The test and terraform jobs run on every push to main and pull request touching this project; the image job waits for tests. Only a tag named ai-reliability-platform-vX.Y.Z publishes to GHCR.
+flowchart TB
+    trigger(["Push or pull request<br/>touching this project"])
+    test["Job: test<br/>ruff lint and format<br/>unit and end-to-end tests<br/>config validation<br/>compose file check"]
+    tf["Job: terraform<br/>fmt check<br/>init without backend<br/>validate"]
+    img["Job: image, after tests pass<br/>build the container<br/>Trivy image scan fails on HIGH or CRITICAL<br/>Trivy config scan, report only"]
+    tag{{"Release tag?"}}
+    release["Publish to GHCR<br/>provenance and SBOM"]
+    done(["Checks complete"])
     trigger --> test
     trigger --> tf
     test --> img
@@ -29,3 +18,16 @@ flowchart LR
     tag -- yes --> release --> done
     tag -- no --> done
     tf --> done
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    classDef cloud fill:#FFEDD5,stroke:#EA580C,stroke-width:2.5px,color:#5A2300
+    class trigger entry
+    class test app
+    class tf guard
+    class img cloud
+    class tag data
+    class release,done ok

@@ -18,7 +18,7 @@ The projects are independent: nothing in one imports or depends on another. See 
 | Project | What it shows | Start here | Schematics |
 |---|---|---|---|
 | [`ai-reliability-platform`](projects/ai-reliability-platform) | An AI-backed service that keeps answering when a provider fails, protects itself from noisy tenants, and reports honestly on its health. App, Docker, Kubernetes, Terraform on AWS, CI, SLO alerts, runbooks, measured failure drill. | [README](projects/ai-reliability-platform/README.md) | [5 diagrams](projects/ai-reliability-platform/docs/schematics/README.md) |
-| [`self-service-platform`](projects/self-service-platform) | A paved road: one command generates a compliant service, a policy engine checks any repo against rule IDs, a catalog tracks services, and a Terraform module provisions an environment without long-lived credentials. | [README](projects/self-service-platform/README.md) | [4 diagrams](projects/self-service-platform/docs/schematics/README.md) |
+| [`self-service-platform`](projects/self-service-platform) | A paved road: one command generates a compliant service, a policy engine checks any repo against rule IDs, a catalog tracks services, and a Terraform module provisions an environment without long-lived credentials. | [README](projects/self-service-platform/README.md) | [5 diagrams](projects/self-service-platform/docs/schematics/README.md) |
 | [`sre-reliability-lab`](projects/sre-reliability-lab) | Reliability stated as numbers: one SLO file generates multi-window burn-rate alerts, an incident simulator replays failures through them, and a chaos runner rehearses faults and writes game-day reports. | [README](projects/sre-reliability-lab/README.md) | [5 diagrams](projects/sre-reliability-lab/docs/schematics/README.md) |
 
 ## How the repository is organized
@@ -30,7 +30,9 @@ projects-2026/
 │   ├── self-service-platform/      platformctl, policies, terraform module, examples, docs, schematics
 │   └── sre-reliability-lab/        slogen, chaos runner, demo service, observability, game days, schematics
 ├── .github/workflows/              one CI workflow per project, triggered only by changes under its folder
+├── assets/linkedin/                1080x1350 cards and a PDF carousel per project, built from the schematics
 ├── scripts/build_schematics.py     renders every docs/schematics/*.mmd to SVG and rebuilds the schematics READMEs
+├── scripts/build_cards.py          builds the LinkedIn cards and carousel PDFs from those schematics
 └── push.sh                         publishes this repository to GitHub
 ```
 
@@ -59,11 +61,16 @@ only exist in a GitHub organization, so use your org there, or `@Joxejaime` on a
 ## Schematics
 
 Diagrams are written in Mermaid so GitHub renders them inline, with a plain-SVG export next to each source.
-To change one, edit its `.mmd` file and run:
+Colour means role (client, service, protection, observability, alert, success, cloud) and each diagram carries
+its own legend. To change one, edit its `.mmd` file and run:
 
 ```bash
 python3 scripts/build_schematics.py     # needs mermaid-cli (mmdc)
+python3 scripts/build_cards.py          # needs Playwright with Chromium and the Inter font
 ```
+
+`assets/linkedin/<project>/` holds a cover card, one card per schematic and a closing card (PNG, 1080x1350 at 2x),
+plus `<project>-carousel.pdf` with all of them in order for a swipeable LinkedIn document post.
 
 ## License
 

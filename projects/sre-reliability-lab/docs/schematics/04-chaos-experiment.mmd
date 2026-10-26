@@ -1,19 +1,29 @@
 %% title: Chaos experiment lifecycle
+%% headline: A chaos experiment that checks its own claims
+%% takeaway: It refuses to start unless healthy, aborts on damage and checks that a control route stayed clean.
+%% legend: entry=Scenario,app=Action,guard=Check,ok=Hypothesis held,data=Stopped early,alert=Failed
 %% caption: chaos/runner.py. The runner refuses to inject unless steady state holds, checks the abort condition every second, always clears the fault, and gives its verdict only after four checks: the fault was visible to clients, it was visible in the service's own metrics, a control route stayed healthy, and the service recovered in time. Exit codes: 0 held, 1 failed, 2 aborted, 3 precondition failed. Traffic threads are always stopped in a finally block.
-flowchart TD
-    start(["Scenario YAML<br/>hypothesis, target, control, fault, abort, recovery"]) --> reset["Reset all faults<br/>start traffic on target and control routes"]
-    reset --> steady{"Steady state holds?<br/>error and slow ratio under limits"}
-    steady -- no --> pre(["PRECONDITION_FAILED<br/>exit 3, nothing was injected"])
-    steady -- yes --> s1["Scrape /metrics (before)<br/>inject fault via admin API"]
-    s1 --> watch{"Checked every second:<br/>error ratio above abort limit?<br/>duration elapsed?"}
-    watch -- "abort limit hit" --> ab["aborted = true"]
-    watch -- "duration elapsed" --> clear
-    ab --> clear["Scrape /metrics (after)<br/>clear the fault"]
-    clear --> rec["Watch recovery<br/>sliding window until healthy, or max seconds"]
-    rec --> checks{"Evaluate the four checks"}
-    checks -- "aborted" --> abortv(["ABORTED<br/>exit 2"])
-    checks -- "all four pass" --> held(["HYPOTHESIS_HELD<br/>exit 0"])
-    checks -- "any check fails" --> failed(["HYPOTHESIS_FAILED<br/>exit 1"])
-    held --> rep["Write report: phases, checks, SLO projection"]
-    failed --> rep
-    abortv --> rep
+flowchart TB
+    start(["Scenario file"]) --> steady{{"Steady state holds?"}}
+    steady -- no --> pre(["Precondition failed<br/>exit 3, nothing injected"])
+    steady -- yes --> inject["Inject the fault<br/>scrape /metrics before"]
+    inject --> watch{{"Abort limit hit?<br/>checked every second"}}
+    watch -- "yes: stop early" --> clear
+    watch -- "no: duration elapsed" --> clear["Clear the fault<br/>scrape /metrics after, watch recovery"]
+    clear --> checks["Four checks<br/>fault seen by clients and by service metrics<br/>control route clean, recovered in time"]
+    checks -- "aborted" --> abortv(["Aborted, exit 2"])
+    checks -- "all pass" --> held(["Hypothesis held, exit 0"])
+    checks -- "any fails" --> failed(["Hypothesis failed, exit 1"])
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class start entry
+    class inject,clear app
+    class steady,watch,checks guard
+    class pre,abortv data
+    class failed alert
+    class held ok

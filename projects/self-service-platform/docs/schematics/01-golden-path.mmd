@@ -1,11 +1,33 @@
 %% title: The golden path
+%% headline: One command to a compliant service
+%% takeaway: platformctl generates the repo, a policy check gates it, Terraform provisions the environment.
+%% legend: entry=Developer,app=Generated files,guard=Policy and review,data=Pull request,cloud=Terraform,ok=Provisioned
 %% caption: From a developer's request to a running, compliant service. Generating and validating a repository are implemented and tested here. The pull request, terraform plan, approval and apply half is the intended workflow, generated as files but not exercised end to end.
-flowchart LR
-    dev(["Developer"]) -->|"platformctl new orders-api<br/>--owner team-orders --tier standard"| gen["Generated repository<br/>service.yaml, app/ and tests/<br/>Dockerfile: non-root, pinned base<br/>k8s/deployment.yaml: Deployment, Service, PDB<br/>CI workflow: pinned actions, least privilege<br/>CODEOWNERS, docs/runbook.md"]
-    gen -->|"platformctl validate ."| pol{"Policy check<br/>passes?"}
-    pol -- "errors" --> fix["Fix the listed<br/>rule IDs"]
-    fix --> pol
-    pol -- yes --> pr["Pull request"]
-    dev -->|"platformctl env add<br/>orders-api prod"| tfenv["infra/services/<br/>orders-api-prod.tf"]
-    tfenv --> pr
-    pr --> plan["CI: terraform plan"] --> approve["Platform engineer<br/>approves apply"] --> live["ECR repo, deploy role,<br/>log group, budget"]
+flowchart TB
+    dev(["Developer<br/>platformctl new orders-api<br/>--owner team-orders --tier standard"])
+    gen["Generated repository<br/>service.yaml, app and tests, Dockerfile<br/>Kubernetes manifests, CI workflow<br/>CODEOWNERS, runbook"]
+    pol{{"platformctl validate<br/>policy check"}}
+    fix["Fix the findings<br/>each has a rule ID"]
+    tfenv["platformctl env add<br/>orders-api prod<br/>writes Terraform"]
+    pr["Pull request"]
+    plan["CI: terraform plan"]
+    approve["Platform engineer<br/>approves the apply"]
+    live["ECR repository, deploy role,<br/>log group, budget"]
+    dev --> gen --> pol
+    pol -- errors --> fix --> pol
+    pol -- passes --> pr
+    dev -.-> tfenv --> pr
+    pr --> plan --> approve --> live
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    classDef cloud fill:#FFEDD5,stroke:#EA580C,stroke-width:2.5px,color:#5A2300
+    class dev entry
+    class gen,tfenv app
+    class pol,fix,approve guard
+    class pr data
+    class plan cloud
+    class live ok

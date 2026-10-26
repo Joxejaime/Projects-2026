@@ -1,33 +1,46 @@
 %% title: System architecture
+%% headline: An AI gateway built to keep answering when a provider fails
+%% takeaway: Rate limits, budgets, cache, two providers, metrics and SLO alerts in one small service.
+%% legend: entry=Client,app=Gateway,guard=Circuit breakers,neutral=External provider,obs=Observability,alert=On-call
 %% caption: What runs where. The gateway is one stdlib Python process; Prometheus scrapes it and evaluates the SLO rules in observability/rules/slo.yml, Grafana reads Prometheus. Providers are mocks.
-flowchart LR
-    client["Client / tenant<br/>X-Tenant header"]
-
-    subgraph gw["Gateway process (gateway/)"]
-        direction TB
-        http["HTTP server<br/>/v1/chat  /healthz  /readyz  /metrics<br/>/admin/* lab only, token gated"]
-        core["Router<br/>rate limit, budget, cache, providers"]
+flowchart TB
+    client["Client / tenant<br/>POST /v1/chat with X-Tenant header"]
+    subgraph gw["Gateway process"]
+        http["HTTP server<br/>/v1/chat, /healthz, /readyz, /metrics"]
+        core["Router<br/>rate limit, budget, cache"]
         pbrk["Circuit breaker<br/>primary"]
         fbrk["Circuit breaker<br/>fallback"]
         http --> core
         core --> pbrk
         core --> fbrk
     end
-
-    primary["Primary provider<br/>mock, ~120 ms"]
-    fallback["Fallback provider<br/>mock, ~250 ms"]
-
-    subgraph obs["Observability (observability/)"]
-        direction TB
+    primary["Primary provider<br/>mock, about 120 ms"]
+    fallback["Fallback provider<br/>mock, about 250 ms"]
+    subgraph obs["Observability"]
         prom["Prometheus<br/>scrapes /metrics"]
-        rules["Recording rules +<br/>7 alert rules"]
-        graf["Grafana<br/>provisioned dashboard"]
+        rules["7 alert rules<br/>recording rules"]
+        graf["Grafana<br/>dashboard"]
         prom --> rules
         prom --> graf
     end
-
-    client -->|"POST /v1/chat"| http
+    oncall["On-call engineer<br/>alerts link to runbooks"]
+    client --> http
     pbrk --> primary
     fbrk --> fallback
     http -. "/metrics" .-> prom
-    rules -. "page / ticket alerts<br/>link to docs/runbooks" .-> oncall["On-call engineer"]
+    rules -.-> oncall
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef obs fill:#EDE9FE,stroke:#7C3AED,stroke-width:2.5px,color:#2E1065
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef neutral fill:#F1F5F9,stroke:#64748B,stroke-width:2.5px,color:#0F172A
+    class client entry
+    class http,core app
+    class pbrk,fbrk guard
+    class primary,fallback neutral
+    class prom,rules,graf obs
+    class oncall alert
+    style gw fill:#EFF6FF,stroke:#93C5FD,stroke-width:2px,color:#1E3A8A
+    style obs fill:#F5F3FF,stroke:#C4B5FD,stroke-width:2px,color:#4C1D95
