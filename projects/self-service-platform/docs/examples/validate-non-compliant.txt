@@ -4,7 +4,7 @@ ERROR   K8S010 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployme
 ERROR   K8S009 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch]: tier 'critical' requires at least 3 replicas, got 1
 ERROR   K8S008 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch]: hostNetwork must not be enabled
 ERROR   K8S001 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: image 'docker.io/someone/legacy-batch:latest' must use a pinned tag or digest, not 'latest'
-ERROR   K8S002 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: image 'docker.io/someone/legacy-batch:latest' is not from an allowed registry ['ghcr.io/example-org/']
+ERROR   K8S002 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: image 'docker.io/someone/legacy-batch:latest' is not from an allowed registry ['ghcr.io/joxejaime/']
 ERROR   K8S003 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: resources missing: cpu, memory, limits.memory
 ERROR   K8S004 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: must set runAsNonRoot: true
 ERROR   K8S005 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: must set allowPrivilegeEscalation: false

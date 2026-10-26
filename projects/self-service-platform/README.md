@@ -39,7 +39,7 @@ python -m platformctl catalog examples
 
 # 5. Self-service infrastructure as a pull request
 python -m platformctl env add --service billing-api --env dev \
-    --repo example-org/billing-api --owner team-billing --tier critical --out /tmp/infra
+    --repo Joxejaime/billing-api --owner team-billing --tier critical --out /tmp/infra
 ```
 
 Real outputs are checked in: [compliant](docs/examples/validate-compliant.txt),
@@ -95,7 +95,7 @@ exactly that finding.
 |---|---|
 | All 29 tests, lint, scaffold -> validate -> generated tests round trip | Terraform module and `infra/services` not run through `terraform validate`/`apply` (CI runs both) |
 | Example outputs in `docs/examples/` are real tool output | Generated Dockerfile build and Kubernetes manifests not applied to a cluster |
-| | `ghcr.io/example-org` and `example-org/...` are placeholders; set your own org and registry |
+| | Registry defaults to `ghcr.io/joxejaime` and the example repositories are under `Joxejaime/`. The `@example-org/<team>` handle in generated `CODEOWNERS` is still a placeholder: GitHub team handles only exist in a GitHub organization, so replace it with your org (or with `@Joxejaime` on a personal account) |
 
 ## Scope and next steps
 Python services only (the template layer is built for adding languages); `validate` is a focused rule set,

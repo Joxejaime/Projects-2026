@@ -9,4 +9,4 @@ cd "$(dirname "$0")"
 git remote remove origin 2>/dev/null || true
 git remote add origin "https://github.com/${GITHUB_USER}/projects-2026.git"
 git push -u origin main
-echo "Pushed. Next: replace the 'example-org' placeholders with ${GITHUB_USER}: grep -rn example-org ."
+echo "Pushed. Remaining placeholder: the @example-org/<team> CODEOWNERS handle (needs a GitHub organization)."

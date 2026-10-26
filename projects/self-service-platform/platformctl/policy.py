@@ -10,7 +10,7 @@ import yaml
 from .models import TIER_DEFAULTS, Finding, ServiceSpec, load_spec
 
 DEFAULT_POLICY = {
-    "allowed_registries": ["ghcr.io/example-org/"],
+    "allowed_registries": ["ghcr.io/joxejaime/"],
     "required_labels": ["app.kubernetes.io/name", "platform.example/owner", "platform.example/tier"],
     "min_replicas": {tier: d["replicas"] if tier != "best-effort" else 1 for tier, d in TIER_DEFAULTS.items()},
 }

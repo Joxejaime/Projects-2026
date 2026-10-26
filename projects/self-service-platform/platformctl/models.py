@@ -74,7 +74,7 @@ class ServiceSpec:
     language: str = "python"
     port: int = 8080
     replicas: int = 0  # 0 => use the tier default
-    registry: str = "ghcr.io/example-org"
+    registry: str = "ghcr.io/joxejaime"
     environments: list[str] = field(default_factory=lambda: ["dev", "prod"])
     slo_availability: float = 0.0  # 0 => use the tier default
 
@@ -164,7 +164,7 @@ def load_spec(path: Path) -> tuple[ServiceSpec | None, list[Finding]]:
         language=data.get("language", "python"),
         port=data.get("port", 8080),
         replicas=data.get("replicas") or 0,
-        registry=data.get("registry", "ghcr.io/example-org"),
+        registry=data.get("registry", "ghcr.io/joxejaime"),
         environments=list(envs),
         slo_availability=float(slo) if slo is not None else 0.0,
     )

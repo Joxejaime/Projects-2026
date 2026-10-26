@@ -4,7 +4,7 @@
 
 # Images must come from one of these registry prefixes.
 allowed_registries:
-  - ghcr.io/example-org/
+  - ghcr.io/joxejaime/
 
 # Labels every workload must carry (ownership and tiering drive routing, cost and alerting).
 required_labels:

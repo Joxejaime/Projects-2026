@@ -27,7 +27,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: orders-api
-          image: ghcr.io/example-org/orders-api:0.1.0
+          image: ghcr.io/joxejaime/orders-api:0.1.0
           ports: [{name: http, containerPort: 8080}]
           env:
             - {name: PORT, value: "8080"}

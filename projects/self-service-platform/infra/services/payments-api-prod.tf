@@ -6,7 +6,7 @@ module "payments_api_prod" {
   environment = "prod"
   owner       = "team-payments"
   tier        = "critical"
-  github_repo = "example-org/payments-api"
+  github_repo = "Joxejaime/payments-api"
 
   github_oidc_provider_arn = var.github_oidc_provider_arn
   monthly_budget_usd       = 600

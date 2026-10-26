@@ -75,12 +75,12 @@ class ScaffoldTests(unittest.TestCase):
 class EnvironmentTests(unittest.TestCase):
     def test_renders_module_call(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = render_environment("orders-api", "dev", "example-org/orders-api", "team-orders", "standard", 75, Path(tmp))
+            path = render_environment("orders-api", "dev", "Joxejaime/orders-api", "team-orders", "standard", 75, Path(tmp))
             text = path.read_text()
             self.assertEqual(path.name, "orders-api-dev.tf")
             for expected in (
                 'module "orders_api_dev"',
-                'github_repo = "example-org/orders-api"',
+                'github_repo = "Joxejaime/orders-api"',
                 "monthly_budget_usd       = 75",
             ):
                 self.assertIn(expected, text)

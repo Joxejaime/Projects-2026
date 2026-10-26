@@ -25,7 +25,7 @@ GOOD = {
                 "containers": [
                     {
                         "name": "x",
-                        "image": "ghcr.io/example-org/x:1.0.0",
+                        "image": "ghcr.io/joxejaime/x:1.0.0",
                         "resources": {"requests": {"cpu": "1m", "memory": "1Mi"}, "limits": {"memory": "2Mi"}},
                         "securityContext": {"allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True},
                         "readinessProbe": {"httpGet": {"path": "/", "port": 1}},
@@ -58,8 +58,8 @@ class K8sPolicyTests(unittest.TestCase):
 
     def test_violations_are_detected(self):
         cases = {
-            "latest tag": (lambda d: container(d).update(image="ghcr.io/example-org/x:latest"), ("K8S001", "error")),
-            "untagged": (lambda d: container(d).update(image="ghcr.io/example-org/x"), ("K8S001", "error")),
+            "latest tag": (lambda d: container(d).update(image="ghcr.io/joxejaime/x:latest"), ("K8S001", "error")),
+            "untagged": (lambda d: container(d).update(image="ghcr.io/joxejaime/x"), ("K8S001", "error")),
             "foreign registry": (lambda d: container(d).update(image="evil.io/x:1"), ("K8S002", "error")),
             "no resources": (lambda d: container(d).pop("resources"), ("K8S003", "error")),
             "root": (lambda d: d["spec"]["template"]["spec"].pop("securityContext"), ("K8S004", "error")),
@@ -80,7 +80,7 @@ class K8sPolicyTests(unittest.TestCase):
                 self.assertIn(expected, rules(mutate(change)))
 
     def test_digest_pins_are_accepted(self):
-        doc = mutate(lambda d: container(d).update(image="ghcr.io/example-org/x@sha256:" + "a" * 64))
+        doc = mutate(lambda d: container(d).update(image="ghcr.io/joxejaime/x@sha256:" + "a" * 64))
         self.assertEqual(rules(doc), set())
 
     def test_replica_minimum_depends_on_tier(self):

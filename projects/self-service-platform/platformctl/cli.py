@@ -89,7 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--owner", required=True, help="owning team, e.g. team-orders")
     new.add_argument("--tier", default="standard", choices=sorted(TIER_DEFAULTS))
     new.add_argument("--port", type=int, default=8080)
-    new.add_argument("--registry", default="ghcr.io/example-org")
+    new.add_argument("--registry", default="ghcr.io/joxejaime")
     new.add_argument("--out", help="output directory (default: ./<name>)")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)

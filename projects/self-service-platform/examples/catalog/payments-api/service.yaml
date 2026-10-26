@@ -6,7 +6,7 @@ tier: critical
 language: python
 port: 8080
 replicas: 3
-registry: ghcr.io/example-org
+registry: ghcr.io/joxejaime
 environments: [dev, prod]
 slo:
   availability: 99.95

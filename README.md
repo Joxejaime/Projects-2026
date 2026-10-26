@@ -50,10 +50,11 @@ Each project README has its own verified / not-verified table. In short:
 The CI workflows in `.github/workflows/` run the missing checks (Terraform, `promtool`, image scan) on first push.
 Workflow paths were adapted for this layout and have not yet run on GitHub.
 
-## Placeholders to replace before publishing
+## Placeholders still to replace
 
-`example-org` (image registry and organization in `self-service-platform`, plus `ghcr.io/example-org/...` image
-references) is a placeholder. Search for it and substitute your GitHub user or organization.
+The image registry defaults to `ghcr.io/joxejaime` and example repositories point at `Joxejaime/...`. One placeholder
+remains: the `@example-org/<team>` handle in the `CODEOWNERS` template of `self-service-platform`. GitHub team handles
+only exist in a GitHub organization, so use your org there, or `@Joxejaime` on a personal account.
 
 ## Schematics
 

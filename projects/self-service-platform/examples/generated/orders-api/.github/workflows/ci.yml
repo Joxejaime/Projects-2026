@@ -58,6 +58,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/example-org/orders-api:${{ github.ref_name }}
+          tags: ghcr.io/joxejaime/orders-api:${{ github.ref_name }}
           provenance: true
           sbom: true
