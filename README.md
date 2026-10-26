@@ -45,6 +45,41 @@ same rules audit any existing repository by rule ID.
 
 ---
 
+## About me
+
+I'm **Jaime Castillo Araujo**, based in Managua, Nicaragua.
+
+I work in production support — currently **Tech Support Specialist Level 2 at Ibex**, supporting a point-of-sale
+SaaS platform, promoted from Level 1 after a year. Alongside that I've worked as a **freelance DevOps and cloud
+consultant since 2023**.
+
+Support is where this portfolio comes from. Spending your day on the receiving end of outages teaches you which
+alerts are worth waking someone for, why a runbook matters more than a dashboard, and how much of an incident is
+communication rather than terminal commands. These projects are me building the other side of that: the delivery
+pipelines, the infrastructure and the recovery tooling that decide whether a support queue is calm or on fire.
+
+### What I'm looking for
+
+Open to **remote roles across Latin America**, not limited to Nicaragua.
+
+- Junior DevOps Engineer / DevOps Engineer
+- Junior Cloud Engineer / AWS Engineer
+- Cloud Support Engineer / Technical Support Engineer
+- Technical Support Specialist
+
+I'm early in the DevOps side of my career and direct about it: this repository is deliberately explicit about
+what has actually been run versus what has only been written. I'd rather be hired on what I can defend.
+
+### Contact
+
+| | |
+|---|---|
+| Email | [castilloajosejaime@gmail.com](mailto:castilloajosejaime@gmail.com) |
+| GitHub | [@Joxejaime](https://github.com/Joxejaime) |
+| Location | Managua, Nicaragua · open to remote across LatAm |
+
+---
+
 ## What is proven, and what is not
 
 Nothing here is claimed unless it has been run. Each component README ends with its own
