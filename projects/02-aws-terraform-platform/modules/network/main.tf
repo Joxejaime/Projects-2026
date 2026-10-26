@@ -10,6 +10,7 @@ terraform {
 }
 
 data "aws_availability_zones" "available" {
+  #checkov:skip=CKV_AWS_394:Only the first az_count zone names are used, so a newly added zone does not change existing subnets; pinning explicit zone IDs is a listed next improvement
   state = "available"
 }
 
