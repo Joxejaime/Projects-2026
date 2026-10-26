@@ -1,0 +1,43 @@
+%% title: Burn-rate alert logic
+%% headline: Fast on real outages, quiet on blips
+%% takeaway: Each alert needs a long and a short window above threshold; pages suppress tickets.
+%% legend: entry=SLO,alert=Page,data=Ticket,obs=Routing,guard=Inhibition,ok=Suppressed,neutral=Explanation
+%% caption: docs/slo.md and prometheus/gen_slo_rules.py. Burn rate is the observed error ratio divided by the error budget. Thresholds are burn rate times budget, the long window proves significance, the short window proves it is still happening, and Alertmanager inhibits ticket alerts while a page alert is firing.
+flowchart TB
+  slo["SLO: 99.5 percent of /api requests are not 5xx<br/>Error budget = 0.5 percent over 30 days"]
+  burn["Burn rate = observed error ratio / error budget<br/>1x spends the budget exactly in 30 days"]
+  slo --> burn
+
+  burn --> A
+  subgraph A["Availability alerts (latency uses the same pattern: 6x page, 1x ticket): fire only when BOTH windows exceed the threshold"]
+    direction TB
+    f["Fast: 14.4x, 1h and 5m, hold 2m<br/>threshold 7.2 percent errors, PAGE"]
+    m["Medium: 6x, 6h and 30m, hold 15m<br/>threshold 3 percent, PAGE"]
+    s["Slow: 3x, 1d and 2h, hold 1h<br/>threshold 1.5 percent, TICKET"]
+    l["Leak: 1x, 3d and 6h, hold 3h<br/>threshold 0.5 percent, TICKET"]
+  end
+
+  why["Long window: is it real and significant?<br/>Short window: is it still happening right now?<br/>Together: fast to fire, fast to clear"]
+  A --- why
+
+  A --> route["Alertmanager routes by severity<br/>page to the pager receiver, ticket to the ticket receiver"]
+  route --> inh{"Is it a ticket alert while a page alert<br/>is firing for the same service and SLO?"}
+  inh -->|"yes"| quiet["Ticket suppressed by inhibition<br/>on-call is not notified twice"]
+  inh -->|"no"| deliver["Delivered to the receiver"]
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef obs fill:#EDE9FE,stroke:#7C3AED,stroke-width:2.5px,color:#2E1065
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#052E16
+    classDef cloud fill:#FFEDD5,stroke:#EA580C,stroke-width:2.5px,color:#431407
+    classDef neutral fill:#F1F5F9,stroke:#64748B,stroke-width:2.5px,color:#0F172A
+    class slo entry
+    class burn,why neutral
+    class f,m alert
+    class s,l data
+    class route,deliver obs
+    class inh guard
+    class quiet ok

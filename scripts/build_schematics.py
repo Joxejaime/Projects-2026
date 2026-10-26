@@ -4,7 +4,7 @@
 The .mmd files are the source of truth. Each starts with two comment lines:
     %% title: ...
     %% caption: ...
-Requires mermaid-cli (`mmdc`). Set MMDC_PUPPETEER_CONFIG to a puppeteer JSON config if the
+Optional arguments: project names to rebuild (default: all). Requires mermaid-cli (`mmdc`). Set MMDC_PUPPETEER_CONFIG to a puppeteer JSON config if the
 default browser lookup fails (for example {"executablePath": "...", "args": ["--no-sandbox"]}).
 """
 
@@ -52,11 +52,14 @@ def render(src: Path, dst: Path) -> None:
 
 def main() -> int:
     only_md = "--md-only" in sys.argv
+    only = {a for a in sys.argv[1:] if not a.startswith("--")}  # optional: project names to rebuild
     for folder in sorted(ROOT.glob("projects/*/docs/schematics")):
         sources = sorted(folder.glob("*.mmd"))
         if not sources:
             continue
         project = folder.parent.parent.name
+        if only and project not in only:
+            continue
         lines = [
             f"# Schematics: {project}",
             "",

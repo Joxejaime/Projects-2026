@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: release-tracker-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: release-tracker
+  source:
+    repoURL: https://github.com/Joxejaime/projects-2026.git
+    targetRevision: main
+    path: projects/03-k8s-gitops/k8s/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: release-tracker-dev
+  syncPolicy:
+    # Dev follows main automatically; drift is reverted.
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m
+  ignoreDifferences:
+    # The HPA owns the replica count once created.
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

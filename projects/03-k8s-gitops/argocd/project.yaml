@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: release-tracker
+  namespace: argocd
+spec:
+  description: release-tracker environments
+  sourceRepos:
+    - https://github.com/Joxejaime/projects-2026.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: release-tracker-dev
+    - server: https://kubernetes.default.svc
+      namespace: release-tracker-prod
+  # Namespaces are created by the overlays, so Namespace is the only cluster-scoped
+  # kind this project may manage. Everything else cluster-wide is denied.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota
+    - group: ""
+      kind: LimitRange
+  orphanedResources:
+    warn: true

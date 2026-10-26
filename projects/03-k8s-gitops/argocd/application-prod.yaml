@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: release-tracker-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: release-tracker
+  source:
+    repoURL: https://github.com/Joxejaime/projects-2026.git
+    targetRevision: main
+    path: projects/03-k8s-gitops/k8s/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: release-tracker-prod
+  # No `automated` block: production syncs are a deliberate, reviewed action
+  # (merge the promotion PR, then press Sync or run `argocd app sync`).
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

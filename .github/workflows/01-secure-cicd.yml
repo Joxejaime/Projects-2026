@@ -1,0 +1,166 @@
+name: 01 - Secure CI/CD (release-tracker)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/01-secure-cicd-pipeline/**"
+      - ".github/workflows/01-secure-cicd.yml"
+  pull_request:
+    paths:
+      - "projects/01-secure-cicd-pipeline/**"
+      - ".github/workflows/01-secure-cicd.yml"
+  workflow_dispatch:
+
+# Least privilege by default; jobs elevate only what they need.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_DIR: projects/01-secure-cicd-pipeline
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/release-tracker
+
+jobs:
+  quality:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ruff
+        run: python -m pip install ruff
+      - name: Lint
+        working-directory: ${{ env.APP_DIR }}/app
+        run: ruff check .
+      - name: Unit tests
+        working-directory: ${{ env.APP_DIR }}/app
+        run: python -m unittest discover -s tests -v
+
+  dockerfile-lint:
+    name: Dockerfile lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ env.APP_DIR }}/Dockerfile
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-scan:
+    name: Build, scan, SBOM
+    needs: [quality, dockerfile-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image (not pushed)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.APP_DIR }}
+          load: true
+          tags: release-tracker:ci
+          build-args: APP_VERSION=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the container
+        run: |
+          docker run -d --name rt -p 8080:8080 release-tracker:ci
+          for _ in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8080/healthz && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/metrics | grep -q '^app_info'
+          docker rm -f rt
+      - name: Vulnerability scan (fail on HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: release-tracker:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: sarif
+          output: trivy.sarif
+      - name: Upload scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: release-tracker:ci
+          format: spdx-json
+          output-file: sbom.spdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+  publish:
+    name: Publish and sign (main only)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-scan, secret-scan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # keyless signing with cosign (OIDC)
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.APP_DIR }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: APP_VERSION=${{ github.sha }}
+          provenance: mode=max
+          cache-from: type=gha
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign image by digest (keyless)
+        run: cosign sign --yes "${IMAGE_NAME}@${{ steps.push.outputs.digest }}"
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

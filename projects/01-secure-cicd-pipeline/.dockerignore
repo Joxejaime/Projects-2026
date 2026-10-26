@@ -1,0 +1,8 @@
+**/__pycache__
+**/*.pyc
+.git
+.github
+docs
+app/tests
+*.md
+Makefile

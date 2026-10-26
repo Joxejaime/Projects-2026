@@ -1,0 +1,81 @@
+# Local observability lab: app + Prometheus + Alertmanager + Grafana + traffic generator.
+# All ports bind to 127.0.0.1 only.
+name: observability-slo
+
+x-python: &python
+  image: python:3.13-slim
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  user: "10001:10001"
+
+services:
+  app:
+    build:
+      context: ../01-secure-cicd-pipeline
+      args:
+        APP_VERSION: local
+    environment:
+      ENABLE_CHAOS: "true" # enables /api/simulate for failure drills; never set in real environments
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ports: ["127.0.0.1:8080:8080"]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=3d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    depends_on: [app, alertmanager]
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports: ["127.0.0.1:9093:9093"]
+    depends_on: [webhook-sink]
+
+  webhook-sink:
+    <<: *python
+    command: ["python", "/sink/sink.py"]
+    volumes:
+      - ./loadgen/sink.py:/sink/sink.py:ro
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me-locally}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [prometheus]
+
+  loadgen:
+    <<: *python
+    command: ["python", "/loadgen/loadgen.py"]
+    environment:
+      TARGET: http://app:8080
+      RPS: ${RPS:-20}
+      ERROR_RATE: ${ERROR_RATE:-0}
+      SLOW_RATE: ${SLOW_RATE:-0}
+      SLOW_MS: ${SLOW_MS:-400}
+    volumes:
+      - ./loadgen/loadgen.py:/loadgen/loadgen.py:ro
+    depends_on: [app]
+
+volumes:
+  prometheus-data:
+  grafana-data:

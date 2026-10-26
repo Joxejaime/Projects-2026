@@ -1,0 +1,29 @@
+# verify.sh output, 2026-10-25T17:28:29Z
+# tools: ruff 0.16.9, hadolint 2.12.0, tofu v1.10.6, kustomize v5.4.3, promtool 3.5.0, amtool 0.28.1, actionlint 1.7.7, shellcheck 0.10.0
+== Project 01: secure CI/CD
+PASS  ruff lint (01 app)
+PASS  unit tests (01 app)
+PASS  hadolint Dockerfile
+== Project 02: Terraform
+PASS  tofu fmt -check
+PASS  module wiring check
+== Project 03: Kubernetes + GitOps
+PASS  kustomize build (dev)
+PASS  policy check (dev)
+PASS  kustomize build (prod)
+PASS  policy check (prod)
+PASS  policy checker tests (mutation)
+== Project 04: observability
+PASS  generated SLO rules up to date
+PASS  generated dashboard up to date
+PASS  promtool check config
+PASS  promtool check rules
+PASS  promtool test rules (alert unit tests)
+PASS  amtool check-config
+PASS  docker compose config
+== Repository
+PASS  actionlint (all workflows)
+PASS  shellcheck (scripts)
+PASS  ruff lint (scripts, loadgen, generators)
+
+Summary: 20 passed, 0 failed, 0 skipped

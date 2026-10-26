@@ -1,0 +1,59 @@
+name: 04 - Observability and SLOs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/04-observability-slo/**"
+      - ".github/workflows/04-observability.yml"
+  pull_request:
+    paths:
+      - "projects/04-observability-slo/**"
+      - ".github/workflows/04-observability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: observability-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OBS_DIR: projects/04-observability-slo
+  PROM_VERSION: "3.5.0"
+  AM_VERSION: "0.28.1"
+
+jobs:
+  check:
+    name: Rules, config and dashboard checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install promtool and amtool
+        run: |
+          curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz" | tar -xz
+          curl -fsSL "https://github.com/prometheus/alertmanager/releases/download/v${AM_VERSION}/alertmanager-${AM_VERSION}.linux-amd64.tar.gz" | tar -xz
+          mkdir -p "$HOME/bin"
+          cp "prometheus-${PROM_VERSION}.linux-amd64/promtool" "alertmanager-${AM_VERSION}.linux-amd64/amtool" "$HOME/bin/"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Generated files are up to date
+        working-directory: ${{ env.OBS_DIR }}
+        run: |
+          python3 -I prometheus/gen_slo_rules.py --check
+          python3 -I grafana/build_dashboard.py --check
+      - name: Validate Prometheus config and rules
+        working-directory: ${{ env.OBS_DIR }}
+        run: |
+          promtool check config prometheus/prometheus.yml
+          promtool check rules prometheus/rules/*.yml
+      - name: Unit-test the alert rules
+        working-directory: ${{ env.OBS_DIR }}
+        run: promtool test rules prometheus/tests/slo_alerts_test.yml
+      - name: Validate Alertmanager config
+        working-directory: ${{ env.OBS_DIR }}
+        run: amtool check-config alertmanager/alertmanager.yml
+      - name: Validate compose file
+        working-directory: ${{ env.OBS_DIR }}
+        run: docker compose config -q

@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directory: /projects/01-secure-cicd-pipeline
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/02-aws-terraform-platform/envs/dev
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/02-aws-terraform-platform/envs/prod
+    schedule:
+      interval: weekly

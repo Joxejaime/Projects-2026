@@ -208,6 +208,8 @@ def svg_img(svg_path: Path) -> tuple[str, float]:
 
 
 def legend_html(spec: str) -> str:
+    if not spec.strip():  # e.g. sequence diagrams have no colour roles
+        return ""
     chips = []
     for part in spec.split(","):
         role, _, label = part.partition("=")

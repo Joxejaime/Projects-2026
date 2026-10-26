@@ -1,0 +1,16 @@
+[project]
+name = "release-tracker"
+version = "0.1.0"
+description = "Dependency-free deployment tracker used to demonstrate CI/CD, IaC, GitOps and observability."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S310", "E402", "I001"]

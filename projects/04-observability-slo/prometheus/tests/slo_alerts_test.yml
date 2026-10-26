@@ -1,0 +1,121 @@
+# Run: promtool test rules prometheus/tests/slo_alerts_test.yml
+# Each case replays synthetic traffic and asserts which alerts do (and do not) fire.
+rule_files:
+  - ../rules/slo-recording.yml
+  - ../rules/slo-alerts.yml
+  - ../rules/service-alerts.yml
+
+evaluation_interval: 30s
+
+tests:
+  - name: healthy traffic fires nothing
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="200"}'
+        values: "0+100x400"
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="500"}'
+        values: "0+0x400"
+      - series: 'http_request_duration_seconds_bucket{job="release-tracker",instance="app:8080",route="/api/deployments",le="0.25"}'
+        values: "0+100x400"
+      - series: 'http_request_duration_seconds_bucket{job="release-tracker",instance="app:8080",route="/api/deployments",le="+Inf"}'
+        values: "0+100x400"
+    promql_expr_test:
+      - expr: ALERTS{alertstate="firing"}
+        eval_time: 300m
+
+  - name: total outage pages via the fast-burn alert
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="200"}'
+        values: "0+0x400"
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="500"}'
+        values: "0+100x400"
+    promql_expr_test:
+      - expr: ALERTS{alertname="AvailabilityFastBurn",alertstate="firing"}
+        eval_time: 15m
+        exp_samples:
+          - labels: 'ALERTS{alertname="AvailabilityFastBurn",alertstate="firing",service="release-tracker",severity="page",slo="availability"}'
+            value: 1
+      - expr: ALERTS{alertname="AvailabilityFastBurn",alertstate="firing"}
+        eval_time: 30s # too early: the 2m "for" hold has not elapsed
+
+  - name: 5 percent errors is a 10x burn - medium page fires, fast page does not
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="200"}'
+        values: "0+95x400"
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="500"}'
+        values: "0+5x400"
+    promql_expr_test:
+      - expr: ALERTS{alertname="AvailabilityFastBurn",alertstate="firing"}
+        eval_time: 90m
+      - expr: ALERTS{alertname="AvailabilityMediumBurn",alertstate="firing"}
+        eval_time: 90m
+        exp_samples:
+          - labels: 'ALERTS{alertname="AvailabilityMediumBurn",alertstate="firing",service="release-tracker",severity="page",slo="availability"}'
+            value: 1
+
+  - name: errors inside the budget (0.4 percent vs 0.5 percent allowed) stay quiet
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="200"}'
+        values: "0+996x400"
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="500"}'
+        values: "0+4x400"
+    promql_expr_test:
+      - expr: ALERTS{alertstate="firing"}
+        eval_time: 300m
+
+  - name: health and metrics endpoints are not counted as user traffic
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/api/deployments",status="200"}'
+        values: "0+100x400"
+      - series: 'http_requests_total{job="release-tracker",instance="app:8080",method="GET",route="/readyz",status="503"}'
+        values: "0+500x400"
+    promql_expr_test:
+      - expr: slo:availability_error_ratio:rate1h
+        eval_time: 120m
+        exp_samples:
+          - labels: 'slo:availability_error_ratio:rate1h{service="release-tracker"}'
+            value: 0
+
+  - name: slow responses burn the latency budget
+    interval: 1m
+    input_series:
+      - series: 'http_request_duration_seconds_bucket{job="release-tracker",instance="app:8080",route="/api/deployments",le="0.25"}'
+        values: "0+60x400" # only 60% under 250ms -> 40% slow, 8x the 5% budget
+      - series: 'http_request_duration_seconds_bucket{job="release-tracker",instance="app:8080",route="/api/deployments",le="+Inf"}'
+        values: "0+100x400"
+    promql_expr_test:
+      - expr: ALERTS{alertname="LatencyFastBurn",alertstate="firing"}
+        eval_time: 20m
+        exp_samples:
+          - labels: 'ALERTS{alertname="LatencyFastBurn",alertstate="firing",service="release-tracker",severity="page",slo="latency"}'
+            value: 1
+
+  - name: target down pages after two minutes
+    interval: 1m
+    input_series:
+      - series: 'up{job="release-tracker",instance="app:8080"}'
+        values: "1 1 1 0 0 0 0 0 0 0"
+    promql_expr_test:
+      - expr: ALERTS{alertname="TargetDown",alertstate="firing"}
+        eval_time: 8m
+        exp_samples:
+          - labels: 'ALERTS{alertname="TargetDown",alertstate="firing",instance="app:8080",job="release-tracker",service="release-tracker",severity="page",slo="availability"}'
+            value: 1
+      - expr: ALERTS{alertname="TargetDown",alertstate="firing"}
+        eval_time: 4m # down for ~1m: still inside the hold window
+
+  - name: repeated restarts are flagged as a crash loop
+    interval: 1m
+    input_series:
+      - series: 'process_start_time_seconds{job="release-tracker",instance="app:8080"}'
+        values: "100 100 200 300 400 400 400 400 400 400"
+    promql_expr_test:
+      - expr: ALERTS{alertname="CrashLooping",alertstate="firing"}
+        eval_time: 7m
+        exp_samples:
+          - labels: 'ALERTS{alertname="CrashLooping",alertstate="firing",instance="app:8080",job="release-tracker",service="release-tracker",severity="page",slo="availability"}'
+            value: 1
