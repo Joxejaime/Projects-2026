@@ -111,6 +111,8 @@ jobs:
             echo "::error title=Trivy scanner error::$(tail -n 5 trivy.err | tr '\n' ' ')"
             exit 1
           fi
+          paths=$(docker run --rm --entrypoint sh release-tracker:ci -c "find / \( -iname 'setuptools*' -o -iname 'urllib3*' -o -iname 'msgpack*' -o -iname 'pip*' \) -not -path '/proc/*' 2>/dev/null | head -n 15" | tr '\n' ' ')
+          echo "::warning title=Where the flagged packages live::$paths"
           trivy --format json --output /out/trivy.json 2>/dev/null
           count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy.json)
           echo "HIGH/CRITICAL fixable vulnerabilities: $count"
