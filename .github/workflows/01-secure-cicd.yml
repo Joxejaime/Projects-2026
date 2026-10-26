@@ -95,7 +95,7 @@ jobs:
           curl -fsS http://127.0.0.1:8080/metrics | grep -q '^app_info'
           docker rm -f rt
       - name: Vulnerability scan (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: release-tracker:ci
           severity: HIGH,CRITICAL
