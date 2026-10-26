@@ -26,7 +26,7 @@ measure them. Then update each "Verification status" table.
 Use these as templates; fill the brackets with your own results or delete the clause.
 - Built a CI/CD pipeline in GitHub Actions (lint, test, container build, Trivy scan, SBOM, cosign signing,
   provenance) that blocks HIGH/CRITICAL vulnerabilities before publish; [pipeline runs in X minutes].
-- Authored reusable Terraform/OpenTofu modules for a multi-AZ AWS VPC and ECS Fargate service with ALB,
+- Authored reusable Terraform modules for a multi-AZ AWS VPC and ECS Fargate service with ALB,
   autoscaling and alarms; replaced stored cloud keys with GitHub OIDC and environment-gated applies.
 - Implemented GitOps delivery with Kustomize and Argo CD, with Pod Security `restricted`, default-deny
   NetworkPolicies and a tested policy-as-code checker enforcing hardening rules on rendered manifests.

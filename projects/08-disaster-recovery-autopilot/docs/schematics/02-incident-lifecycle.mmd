@@ -1,0 +1,21 @@
+%% title: Incident lifecycle
+%% headline: Automation tries first, a human is never skipped
+%% takeaway: Every path ends in a postmortem draft, including the ones where automation failed.
+%% legend: alert=Alert and escalation,guard=Automation,ok=Recovered and closed
+%% caption: The states an incident moves through. Repeated notifications for a firing alert do not re-run recovery. An incident closes only when every alert in it has resolved and no recovery is still running, so the postmortem always includes the full automation record. With no matching playbook, or after the last failed attempt, the incident is escalated, and the draft says so and proposes the follow-up.
+flowchart TB
+    fire(["alert fires"]) --> open["Open<br/>detection time recorded"]
+    open -->|playbook matches| rec["Recovering<br/>run steps, then verify<br/>retry up to max_attempts"]
+    open -->|no playbook| esc["Escalated<br/>human paged"]
+    rec -->|"steps ok and<br/>N healthy probes"| mit["Mitigated"]
+    rec -->|out of attempts| esc
+    mit -->|all alerts resolved| res["Resolved"]
+    esc -->|"human fixes it,<br/>alerts resolve"| res
+    res -->|"no recovery still running"| closed(["Closed<br/>postmortem draft written"])
+
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class fire,open,esc alert
+    class rec guard
+    class mit,res,closed ok

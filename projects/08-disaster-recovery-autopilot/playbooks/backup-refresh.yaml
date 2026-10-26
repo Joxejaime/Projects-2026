@@ -1,0 +1,22 @@
+# Closes the loop on a failing restore test: when the scheduled restore test says the newest snapshot no longer
+# restores (or backups have stopped), take a fresh, validated snapshot of the live data and prove it restores.
+# If the live data is itself invalid, snapshot refuses, the playbook fails, and a human is told exactly that.
+#
+# Alerts come from observability/alert-rules.yml, fed by `recover.py restore-test --metrics-file`.
+# Environment: DATABASE_URL, BACKUP_STORE, RESTORE_TEST_METRICS_FILE (the node_exporter textfile-collector file).
+name: backup-refresh
+match:
+  alertname: BackupRestoreTestFailing
+max_attempts: 1
+objectives:
+  rto_seconds: 900    # from the failed test to a snapshot that restores
+steps:
+  - name: Take a fresh validated snapshot
+    run: ["{python}", "{playbook_dir}/../scripts/recover.py", "snapshot"]
+    timeout: 300
+verify:
+  checks:
+    - name: Prove the new snapshot restores
+      # Writes the textfile metrics too, so the BackupRestoreTestFailing alert resolves now, not at the next scheduled test.
+      run: ["{python}", "{playbook_dir}/../scripts/recover.py", "restore-test", "--metrics-file", "{env.RESTORE_TEST_METRICS_FILE}"]
+      timeout: 300

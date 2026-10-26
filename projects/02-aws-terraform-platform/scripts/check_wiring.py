@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Static wiring check for the Terraform modules (no providers or network needed).
 
-`tofu validate` needs provider plugins, which are not always reachable (air-gapped
+`terraform validate` needs provider plugins, which are not always reachable (air-gapped
 laptops, restricted CI runners, sandboxes). This script catches the most common
 module-wiring mistakes without them:
 
@@ -10,7 +10,7 @@ module-wiring mistakes without them:
   * a reference like module.foo.bar points at an output that does not exist
   * a var.xxx reference in an environment has no matching variable block
 
-It is a *complement* to `tofu validate`, not a replacement; CI runs both.
+It is a *complement* to `terraform validate`, not a replacement; CI runs both.
 """
 
 from __future__ import annotations

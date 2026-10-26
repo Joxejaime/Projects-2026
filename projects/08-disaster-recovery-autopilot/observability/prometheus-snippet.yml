@@ -1,0 +1,8 @@
+# Merge into project 04's prometheus/prometheus.yml under `scrape_configs`. The orders service exposes
+# orders_data_healthy on /metrics, which alert-rules.yml reads. For the restore test, point node_exporter's
+# textfile collector at the directory given to `recover.py restore-test --metrics-file`.
+scrape_configs:
+  - job_name: orders
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["orders:8090"]

@@ -6,11 +6,11 @@ on:
     branches: [main]
     paths:
       - "projects/06-self-service-platform/**"
-      - ".github/workflows/self-service-platform.yml"
+      - ".github/workflows/06-self-service-platform.yml"
   pull_request:
     paths:
       - "projects/06-self-service-platform/**"
-      - ".github/workflows/self-service-platform.yml"
+      - ".github/workflows/06-self-service-platform.yml"
 
 permissions:
   contents: read

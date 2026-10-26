@@ -1,4 +1,4 @@
-# 02 · AWS platform with Terraform / OpenTofu
+# 02 · AWS platform with Terraform
 
 Infrastructure as code for running the container from project 01 on AWS: a multi-AZ VPC, ECS Fargate
 behind an Application Load Balancer, autoscaling, alarms, and a pipeline that plans on pull requests and
@@ -34,22 +34,22 @@ scripts/check_wiring.py   static module-wiring checker that needs no provider do
   count (`ignore_changes`), separate task *execution* and *task* roles (task role starts empty).
 - **Keyless CI auth:** GitHub OIDC; the plan role is read-only, the apply role can only be assumed by
   jobs that target a protected GitHub Environment. The apply policy has no default on purpose.
-- **Native S3 state locking** (`use_lockfile`), so no DynamoDB table to run.
+- **Native S3 state locking** (`use_lockfile`, generally available from Terraform 1.11), so no DynamoDB table to run.
 
 ## Use it
 ```bash
 # 1. state bucket + OIDC roles (once, with admin credentials)
 cd bootstrap
-tofu init && tofu apply -var state_bucket_name=<unique> -var github_repository=<you>/<repo> \
+terraform init && terraform apply -var state_bucket_name=<unique> -var github_repository=<you>/<repo> \
   -var 'apply_policy_arns=["arn:aws:iam::<account>:policy/<scoped-policy>"]'
 
 # 2. an environment
 cd ../envs/dev
 cp backend.hcl.example backend.hcl && cp terraform.tfvars.example terraform.tfvars   # edit both
-tofu init -backend-config=backend.hcl
-tofu plan && tofu apply
-curl "$(tofu output -raw url)/healthz"
-# tear down: tofu destroy   (dev only; prod has deletion protection)
+terraform init -backend-config=backend.hcl
+terraform plan && terraform apply
+curl "$(terraform output -raw url)/healthz"
+# tear down: terraform destroy   (dev only; prod has deletion protection)
 ```
 Cost note: the NAT gateway and ALB bill hourly even when idle. Use `dev` for experiments and destroy it
 afterwards. Check current AWS pricing before leaving anything running.
@@ -57,10 +57,10 @@ afterwards. Check current AWS pricing before leaving anything running.
 ## Verification status
 | Check | Status |
 |---|---|
-| `tofu fmt -check` (parses all HCL) | Run: pass |
+| `fmt -check` (parses all HCL) | Run: pass, with OpenTofu 1.10.6 before the switch to Terraform. The HCL is the same; `terraform fmt` has not been run on it yet. |
 | `scripts/check_wiring.py` (arguments match module variables, required vars supplied, outputs exist) | Run: pass; also proven to catch 4 injected mistakes |
-| GitHub Actions on the pull request: `tofu fmt`, wiring check, `tofu init` (no backend) + `validate` for `bootstrap`, `envs/dev` and `envs/prod`; TFLint; Checkov | **Run on GitHub: pass.** Validation checks syntax and provider schemas, not real AWS behaviour. Checkov's first 21 findings were triaged: each is skipped inline (`#checkov:skip=ID:reason`) with a written reason, and the scan stays report-only (`soft_fail`) until you decide to make it gate merges. |
-| `tofu plan` / `apply` | **Not run.** They are skipped in CI until AWS role and region variables are configured; run `plan` yourself before relying on this. |
+| GitHub Actions on the pull request: `terraform fmt`, wiring check, `terraform init` (no backend) + `validate` for `bootstrap`, `envs/dev` and `envs/prod`; TFLint; Checkov | **Passed on GitHub with OpenTofu 1.10.6. The workflow now uses Terraform 1.13.0 and `required_version` is `>= 1.11.0`; that run is pending.** Validation checks syntax and provider schemas, not real AWS behaviour. Checkov's first 21 findings were triaged: each is skipped inline (`#checkov:skip=ID:reason`) with a written reason, and the scan stays report-only (`soft_fail`) until you decide to make it gate merges. |
+| `terraform plan` / `apply` | **Not run.** They are skipped in CI until AWS role and region variables are configured; run `plan` yourself before relying on this. |
 | Applied to a real AWS account | **No.** Nothing here has been deployed. Treat the first `plan` as the real test and expect to fix small provider-schema details. |
 
 ### Checkov triage

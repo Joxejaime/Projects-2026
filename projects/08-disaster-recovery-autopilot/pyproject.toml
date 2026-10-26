@@ -1,0 +1,29 @@
+[project]
+name = "disaster-recovery-autopilot"
+version = "0.1.0"
+description = "Alert-driven automated recovery that verifies itself and writes a postmortem draft"
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6", "psycopg[binary]>=3.2"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B", "N", "E501"]  # long strings in test fixtures are clearer unwrapped
+"demo/*" = ["S"]
+"scripts/*" = ["S"]
+"recovery/*" = ["S608"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "demo"]
+addopts = "-ra"
+markers = [
+    "postgres: needs PostgreSQL server binaries (initdb, pg_ctl) and client tools; skipped when they are missing",
+    "drill: end-to-end disaster-recovery drill (starts a real database, takes a few seconds)",
+]

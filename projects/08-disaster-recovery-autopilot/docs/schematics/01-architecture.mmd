@@ -1,0 +1,62 @@
+%% title: System architecture
+%% headline: Detect with 04, recover with 02 and 03, write it down
+%% takeaway: drpilot adds recovery and postmortems on top of the monitoring and deployment tooling already in the repo.
+%% legend: app=Service and data,obs=Project 04 detection,guard=drpilot responder,alert=Recovery actions,data=Backups,ok=Postmortem
+%% caption: Project 04's Prometheus and Alertmanager detect the failure and route alerts labelled autoremediate to drpilot while still paging people. The responder opens an incident and runs the most specific playbook: restore the newest snapshot that proves itself (checksum, scratch restore and data checks, in that order), or re-apply project 02's Terraform for dev, or roll back project 03's Deployment. Recovery only counts after consecutive healthy probes and passing data checks. A scheduled restore test feeds metrics back to Prometheus, so a backup that stops restoring raises an alert before it is needed. When every alert has resolved the postmortem draft is written, optionally as a GitHub issue.
+flowchart LR
+    subgraph svc["Service and data"]
+        orders["orders service<br/>/healthz /metrics"]
+        pg[("PostgreSQL")]
+        orders --- pg
+    end
+    subgraph p04["Project 04: detection"]
+        prom["Prometheus"]
+        am["Alertmanager<br/>pager + ticket + drpilot route"]
+        prom --> am
+    end
+    subgraph resp["drpilot responder"]
+        hook["POST /alerts<br/>bearer token"]
+        engine["incident engine"]
+        books["playbooks<br/>RTO / RPO"]
+        store[("incident store")]
+        hook --> engine
+        books --> engine
+        engine --> store
+    end
+    subgraph act["Recovery actions"]
+        restore["recover.py restore<br/>checksum, scratch restore, validate"]
+        tf["terraform apply<br/>project 02, dev only"]
+        k8s["kubectl rollout undo<br/>project 03"]
+    end
+    snaps[("snapshots<br/>local dir or S3 bucket<br/>dump + manifest")]
+    rtest["restore-test<br/>scheduled"]
+    pm["postmortem draft"]
+    gh["GitHub issue<br/>for review"]
+    orders -. metrics .-> prom
+    am -->|webhook| hook
+    engine --> restore
+    engine --> tf
+    engine --> k8s
+    snaps --> restore
+    restore -->|"pg_restore"| pg
+    engine -->|"verify: probes + data checks"| orders
+    snaps --> rtest
+    rtest -. textfile metrics .-> prom
+    engine -->|"all alerts resolved"| pm --> gh
+
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef obs fill:#EDE9FE,stroke:#7C3AED,stroke-width:2.5px,color:#2E1065
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#0B3D1E
+    class orders,pg app
+    class snaps,store,rtest data
+    class prom,am obs
+    class hook,engine guard
+    class books,restore,tf,k8s alert
+    class pm,gh ok
+    style svc fill:#EFF6FF,stroke:#93C5FD,stroke-width:2px,color:#1E3A8A
+    style p04 fill:#F5F3FF,stroke:#C4B5FD,stroke-width:2px,color:#4C1D95
+    style resp fill:#F0FDFA,stroke:#5EEAD4,stroke-width:2px,color:#134E4A
+    style act fill:#FFF1F2,stroke:#FDA4AF,stroke-width:2px,color:#881337

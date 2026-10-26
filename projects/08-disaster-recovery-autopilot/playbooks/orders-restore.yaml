@@ -1,0 +1,29 @@
+# Recovery for lost or damaged orders data: restore the newest snapshot that proves itself, then require
+# healthy probes AND passing data checks. `recover.py restore` already skips snapshots whose checksum, restore
+# or validation fails, so a rotted or poisoned backup is never restored over the live database.
+#
+# Environment (set on the drpilot process, never in this file):
+#   DATABASE_URL  the database to recover (needs CREATEDB: restores are proven in a scratch database first)
+#   BACKUP_STORE  a directory or s3://bucket/prefix holding the snapshots
+#   ORDERS_URL    the orders service's base URL, for health probes and the write-path check
+name: orders-restore-from-snapshot
+match:
+  alertname: OrdersDataUnhealthy
+  service: orders
+max_attempts: 2
+objectives:
+  rto_seconds: 300    # impact start to verified recovery
+  rpo_seconds: 900    # snapshots run every 15 minutes, so at most 15 minutes of writes may be lost
+steps:
+  - name: Restore newest verified snapshot
+    run: ["{python}", "{playbook_dir}/../scripts/recover.py", "restore"]
+    timeout: 300
+verify:
+  url: "{env.ORDERS_URL}/healthz"
+  successes: 3
+  interval_seconds: 0.5
+  timeout_seconds: 30
+  checks:
+    - name: Validate recovered data and write path
+      run: ["{python}", "{playbook_dir}/../scripts/recover.py", "validate", "--smoke-url", "{env.ORDERS_URL}"]
+      timeout: 60
