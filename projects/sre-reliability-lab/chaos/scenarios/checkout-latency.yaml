@@ -1,0 +1,38 @@
+name: checkout-latency-injection
+hypothesis: |
+  If /checkout gains 400 ms of extra latency, no request fails (the availability SLI stays clean) but the
+  checkout-latency SLI breaks because responses exceed the 300 ms threshold. This confirms the two SLIs measure
+  different failure modes and that the latency SLO, not the availability SLO, is the one that alerts.
+slow_threshold_ms: 300
+
+target:
+  base_url: http://localhost:8081
+  path: /checkout
+  rps: 25
+  control_path: /catalog
+  control_rps: 5
+  admin_token: lab-only-token
+
+steady_state:
+  duration_seconds: 8
+  max_error_ratio: 0.01
+  max_slow_ratio: 0.01
+
+injection:
+  fault: {route: /checkout, error_rate: 0.0, extra_latency_ms: 400}
+  duration_seconds: 20
+
+abort:
+  error_ratio_above: 0.6
+  check_window_seconds: 5
+
+recovery:
+  max_seconds: 15
+  error_ratio_below: 0.01
+  check_window_seconds: 3
+
+expect:
+  sli: latency
+  error_ratio_at_most: 0.01   # the hypothesis says nothing fails, only slows down
+  objective: 99.0
+  alerts: [CheckoutLatencyFastBurn]

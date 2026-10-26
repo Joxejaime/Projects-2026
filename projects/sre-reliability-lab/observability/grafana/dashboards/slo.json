@@ -1,0 +1,62 @@
+{
+  "uid": "slo-overview",
+  "title": "SLO Overview - shop-api",
+  "tags": ["sre", "slo"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {"from": "now-30m", "to": "now"},
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Error budget remaining (30d window)",
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "slo:error_budget_remaining:ratio", "legendFormat": "{{slo}}"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit", "decimals": 1,
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "red", "value": null}, {"color": "orange", "value": 0.25}, {"color": "green", "value": 0.5}]}}}
+    },
+    {
+      "id": 2, "type": "stat", "title": "Burn rate (5m): 1 = on budget, 14.4 = page",
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "slo:sli_error:ratio_rate5m / (1 - slo:objective:ratio)", "legendFormat": "{{slo}}"}],
+      "fieldConfig": {"defaults": {"decimals": 1,
+        "thresholds": {"mode": "absolute", "steps": [
+          {"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 6}]}}}
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Burn rate by SLO (5m and 1h windows)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"refId": "A", "expr": "slo:sli_error:ratio_rate5m / (1 - slo:objective:ratio)", "legendFormat": "{{slo}} 5m"},
+        {"refId": "B", "expr": "slo:sli_error:ratio_rate1h / (1 - slo:objective:ratio)", "legendFormat": "{{slo}} 1h"}
+      ],
+      "fieldConfig": {"defaults": {"custom": {"thresholdsStyle": {"mode": "line"}},
+        "thresholds": {"mode": "absolute", "steps": [{"color": "transparent", "value": null}, {"color": "red", "value": 14.4}]}}}
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Requests per second by route and status",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (route, code) (rate(http_requests_total[1m]))", "legendFormat": "{{route}} {{code}}"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "p95 latency by route (SLO threshold 300 ms)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum by (route, le) (rate(http_request_duration_seconds_bucket[1m])))", "legendFormat": "{{route}}"}],
+      "fieldConfig": {"defaults": {"unit": "s", "custom": {"thresholdsStyle": {"mode": "line"}},
+        "thresholds": {"mode": "absolute", "steps": [{"color": "transparent", "value": null}, {"color": "red", "value": 0.3}]}}}
+    },
+    {
+      "id": 6, "type": "table", "title": "Firing alerts",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"refId": "A", "expr": "ALERTS{alertstate=\"firing\"}", "format": "table", "instant": true}]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+# Service level objectives for the demo shop-api. Source of truth for alerts, dashboards and
+# error-budget reporting: edit here, then `make generate`.
+service: shop-api
+owner: team-shop
+
+slos:
+  - name: checkout-availability
+    description: Checkout requests that do not fail with a 5xx.
+    sli:
+      type: availability
+      metric: http_requests_total
+      selector: 'route="/checkout"'
+      bad: 'code=~"5.."'
+    objective: 99.9
+    window: 30d
+    runbook: docs/runbooks/checkout-errors.md
+
+  - name: checkout-latency
+    description: Checkout requests answered in 300 ms or less.
+    sli:
+      type: latency
+      metric: http_request_duration_seconds   # histogram; threshold must be an existing bucket (le)
+      selector: 'route="/checkout"'
+      threshold_seconds: 0.3
+    objective: 99.0
+    window: 30d
+    runbook: docs/runbooks/checkout-latency.md
+
+  - name: catalog-availability
+    description: Catalog browsing requests that do not fail with a 5xx.
+    sli:
+      type: availability
+      metric: http_requests_total
+      selector: 'route="/catalog"'
+      bad: 'code=~"5.."'
+    objective: 99.5
+    window: 30d

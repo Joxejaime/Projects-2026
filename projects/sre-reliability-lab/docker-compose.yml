@@ -1,0 +1,53 @@
+# Full lab: demo service + steady traffic + Prometheus (generated SLO rules) + Alertmanager + Grafana.
+#   make up  ->  Grafana http://localhost:3000 (admin/admin), Prometheus :9090, Alertmanager :9093
+# The admin token is a LAB-ONLY value that enables fault injection; never reuse it.
+services:
+  shop-api:
+    build: ./demo
+    environment:
+      SHOP_ADMIN_TOKEN: lab-only-token
+    ports:
+      - "8081:8081"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+  loadgen:
+    build: ./demo
+    command: ["python", "loadgen.py", "--url", "http://shop-api:8081", "--rps", "20"]
+    depends_on: [shop-api]
+    read_only: true
+    cap_drop: [ALL]
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=3d
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./generated:/etc/prometheus/rules:ro
+    ports:
+      - "9090:9090"
+    depends_on: [shop-api, alertmanager]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    volumes:
+      - ./observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    ports:
+      - "9093:9093"
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus]

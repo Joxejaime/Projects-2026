@@ -1,0 +1,37 @@
+name: checkout-error-injection
+hypothesis: |
+  If 30% of /checkout requests start failing with HTTP 500, the blast radius stays on /checkout,
+  the failure is visible in client-side error ratio and the checkout-availability SLO signal, and the
+  service returns to a healthy steady state within 15 seconds of the fault being removed.
+slow_threshold_ms: 300
+
+target:
+  base_url: http://localhost:8081
+  path: /checkout
+  rps: 25
+  control_path: /catalog       # healthy route, watched to verify the blast radius stays contained
+  control_rps: 5
+  admin_token: lab-only-token   # lab value; matches docker-compose.yml
+
+steady_state:
+  duration_seconds: 8
+  max_error_ratio: 0.01
+  max_slow_ratio: 0.01
+
+injection:
+  fault: {route: /checkout, error_rate: 0.3, extra_latency_ms: 0}
+  duration_seconds: 20
+
+abort:                       # safety net: stop the experiment if damage exceeds expectations
+  error_ratio_above: 0.6
+  check_window_seconds: 5
+
+recovery:
+  max_seconds: 15
+  error_ratio_below: 0.01
+  check_window_seconds: 3
+
+expect:
+  sli: availability
+  objective: 99.9
+  alerts: [CheckoutAvailabilityFastBurn]

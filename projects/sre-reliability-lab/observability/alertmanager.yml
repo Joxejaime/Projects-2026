@@ -1,0 +1,28 @@
+# Routing policy. Receivers are PLACEHOLDERS (unreachable webhooks): swap in PagerDuty/Opsgenie/Slack.
+route:
+  receiver: ticket
+  group_by: [service, slo]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity="page"']
+      receiver: pager
+      repeat_interval: 1h
+
+receivers:
+  - name: pager
+    webhook_configs:
+      - url: http://localhost:5001/pager
+        send_resolved: true
+  - name: ticket
+    webhook_configs:
+      - url: http://localhost:5001/ticket
+        send_resolved: true
+
+# While a page-level alert is firing for an SLO, suppress the ticket-level alerts for the same SLO:
+# the human is already looking at it, and the tickets would only be noise.
+inhibit_rules:
+  - source_matchers: ['severity="page"']
+    target_matchers: ['severity="ticket"']
+    equal: [service, slo]
