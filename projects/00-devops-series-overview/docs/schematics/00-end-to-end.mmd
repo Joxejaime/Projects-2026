@@ -1,0 +1,63 @@
+%% title: Four projects, one service
+%% headline: From commit to on-call in four connected projects
+%% takeaway: One signed image is built once, deployed two ways, and watched against SLOs.
+%% legend: entry=People,guard=Pipelines,data=Artifact,app=Kubernetes delivery,cloud=AWS,obs=Observability,alert=Alerting
+%% caption: projects/01 to 04. The pipeline in project 01 publishes a signed image. Project 02 runs it on AWS with OpenTofu and project 03 on Kubernetes with Argo CD. Both expose /metrics, which project 04 turns into SLO burn-rate alerts that page the on-call engineer, who rolls back or fixes forward.
+flowchart TB
+  dev(["Developer<br/>git push / pull request"])
+
+  subgraph P1["01 Secure CI/CD"]
+    ci["GitHub Actions<br/>lint, test, scan, SBOM"]
+    img[("Signed image<br/>ghcr.io, tag sha-...")]
+    ci --> img
+  end
+
+  dev --> ci
+
+  subgraph P2["02 AWS with OpenTofu"]
+    tf["plan on pull request<br/>apply via protected environment"]
+    aws["VPC, ALB, ECS Fargate<br/>autoscaling, alarms"]
+    tf --> aws
+  end
+
+  subgraph P3["03 Kubernetes GitOps"]
+    pr["Promotion pull request<br/>bumps the image tag"]
+    argo["Argo CD<br/>dev auto sync, prod manual"]
+    k8s["Hardened pods<br/>NetworkPolicy, HPA, PDB"]
+    pr --> argo --> k8s
+  end
+
+  img -->|"image tag"| tf
+  img -->|"image tag"| pr
+
+  subgraph P4["04 Observability and SLOs"]
+    prom["Prometheus<br/>burn-rate alert rules"]
+    am["Alertmanager<br/>page or ticket"]
+    gr["Grafana dashboard"]
+    prom --> am
+    prom --> gr
+  end
+
+  aws -.->|"/metrics"| prom
+  k8s -.->|"/metrics"| prom
+
+  oncall(["On-call engineer<br/>runbook, then postmortem"])
+  am --> oncall
+  oncall -.->|"roll back or fix"| dev
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef obs fill:#EDE9FE,stroke:#7C3AED,stroke-width:2.5px,color:#2E1065
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#052E16
+    classDef cloud fill:#FFEDD5,stroke:#EA580C,stroke-width:2.5px,color:#431407
+    classDef neutral fill:#F1F5F9,stroke:#64748B,stroke-width:2.5px,color:#0F172A
+    class dev,oncall entry
+    class ci,tf,pr guard
+    class img data
+    class aws cloud
+    class argo,k8s app
+    class prom,gr obs
+    class am alert

@@ -1,0 +1,37 @@
+# Routing demo. Receivers post to a local webhook sink so the whole alert path can be
+# observed without third-party accounts. To go live, swap in Slack/PagerDuty receivers
+# and load credentials from files (slack_api_url_file, routing_key_file), never inline.
+route:
+  receiver: default
+  group_by: [alertname, service]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity = "page"']
+      receiver: pager
+      group_wait: 10s
+      repeat_interval: 1h
+    - matchers: ['severity = "ticket"']
+      receiver: ticket
+      repeat_interval: 12h
+
+inhibit_rules:
+  # A firing page-level alert already tells the story; suppress the ticket-level
+  # alerts for the same service and SLO so on-call is not double-notified.
+  - source_matchers: ['severity = "page"']
+    target_matchers: ['severity = "ticket"']
+    equal: [service, slo]
+
+receivers:
+  - name: default
+    webhook_configs:
+      - url: http://webhook-sink:5001/default
+  - name: pager
+    webhook_configs:
+      - url: http://webhook-sink:5001/pager
+        send_resolved: true
+  - name: ticket
+    webhook_configs:
+      - url: http://webhook-sink:5001/ticket
+        send_resolved: true

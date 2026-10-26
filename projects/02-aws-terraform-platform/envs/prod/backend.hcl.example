@@ -1,0 +1,6 @@
+# Copy to backend.hcl (git-ignored) and fill in the bucket created by ../../bootstrap.
+bucket       = "YOUR-STATE-BUCKET"
+key          = "release-tracker/prod/terraform.tfstate"
+region       = "us-east-1"
+encrypt      = true
+use_lockfile = true

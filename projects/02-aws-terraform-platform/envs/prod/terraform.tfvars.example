@@ -1,0 +1,4 @@
+image           = "ghcr.io/joxejaime/release-tracker:sha-0000000000000000000000000000000000000000"
+app_version     = "0000000"
+certificate_arn = "arn:aws:acm:us-east-1:111111111111:certificate/00000000-0000-0000-0000-000000000000"
+alert_email     = "oncall@example.com"

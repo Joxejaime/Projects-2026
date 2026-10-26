@@ -1,0 +1,4 @@
+image       = "ghcr.io/joxejaime/release-tracker:sha-0000000000000000000000000000000000000000"
+app_version = "0000000"
+# Narrow to your own IP while experimenting:
+# alb_ingress_cidrs = ["203.0.113.10/32"]

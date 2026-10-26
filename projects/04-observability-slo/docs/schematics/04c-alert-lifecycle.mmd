@@ -1,0 +1,26 @@
+%% title: Alert lifecycle
+%% headline: From fault to page to resolved
+%% takeaway: Measured end to end with real Prometheus and Alertmanager binaries.
+%% caption: docs/evidence/e2e-run.md. A fault is injected, the alert goes pending then firing after its hold time, Alertmanager delivers a page with a runbook link, and a resolved notification follows when the errors stop.
+sequenceDiagram
+  autonumber
+  participant App as release-tracker
+  participant P as Prometheus
+  participant AM as Alertmanager
+  participant Sink as Webhook sink
+  actor Oncall as On-call
+
+  Note over App,AM: Healthy: error ratio 0, no alerts
+  App->>P: Error responses begin (fault injected)
+  P->>P: Both 5m and 1h ratios cross 0.072 -> alert PENDING
+  P->>P: Condition holds for 2m -> alert FIRING
+  P->>AM: Send alert (severity page)
+  AM->>AM: Group, wait group_wait 10s
+  AM->>Sink: POST /pager, status firing, runbook link
+  Sink-->>Oncall: Page with link to availability-burn.md
+  Oncall->>App: Follow runbook: confirm, find change, roll back
+  App->>P: Errors stop, 5m ratio falls first
+  P->>P: Condition false -> alert resolved
+  P->>AM: Resolved
+  AM->>Sink: POST /pager, status resolved
+  Note over AM,Oncall: Then write a blameless postmortem

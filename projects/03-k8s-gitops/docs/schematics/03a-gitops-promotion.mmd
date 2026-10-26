@@ -1,0 +1,30 @@
+%% title: GitOps promotion
+%% headline: Promotion is a pull request; Git is the source of truth
+%% takeaway: Dev syncs automatically, prod waits for a human, and rollback is a revert.
+%% caption: .github/workflows/03-k8s-gitops.yml and argocd/. The promote job checks the tag format, bumps the overlay, re-renders and policy-checks the promoted manifests, then opens a pull request. Argo CD auto-syncs dev with prune and self-heal; prod has no automated sync and needs an explicit one.
+sequenceDiagram
+  autonumber
+  actor Eng as Engineer
+  participant GH as GitHub Actions (workflow 03)
+  participant Git as Git main branch
+  participant Argo as Argo CD
+  participant Dev as Cluster: release-tracker-dev
+  participant Prod as Cluster: release-tracker-prod
+
+  Eng->>GH: Run workflow: environment, image_tag = sha-40hex
+  GH->>GH: validate and policy-tests jobs on current main
+  GH->>GH: Check tag format, kustomize edit set image
+  GH->>GH: Re-render the bumped overlay: kubeconform, policy_check.py
+  GH-->>Git: Open promotion pull request (only if all checks passed)
+  Eng->>Git: Review checks, merge PR
+  Argo->>Git: Poll or webhook, sees new overlay commit
+  alt dev overlay changed
+    Argo->>Dev: Automated sync with prune and selfHeal
+    Dev-->>Argo: Healthy
+  else prod overlay changed
+    Argo-->>Eng: OutOfSync, waiting for a human
+    Eng->>Argo: Press Sync or run argocd app sync
+    Argo->>Prod: Apply with ServerSideApply
+    Prod-->>Argo: Healthy
+  end
+  Note over Eng,Prod: Rollback = revert the promotion PR, then sync

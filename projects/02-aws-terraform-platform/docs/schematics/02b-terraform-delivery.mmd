@@ -1,0 +1,26 @@
+%% title: Terraform delivery with OIDC
+%% headline: No stored AWS keys anywhere
+%% takeaway: Plans use a read-only role; applies need an approved GitHub Environment.
+%% caption: .github/workflows/02-terraform.yml and bootstrap/github-oidc.tf. Pull requests are validated and planned with a read-only role. Applying is a manual run that targets a protected GitHub Environment; the apply role's trust policy only accepts tokens for environment jobs, and state is locked in S3.
+sequenceDiagram
+  autonumber
+  actor Dev as Developer
+  participant GH as GitHub Actions
+  participant STS as AWS STS (OIDC)
+  participant S3 as S3 state bucket
+  participant AWS as AWS account
+
+  Dev->>GH: Open pull request
+  GH->>GH: static job: tofu fmt, wiring check, init -backend=false, validate
+  GH->>GH: security job: TFLint and Checkov, SARIF upload
+  GH->>STS: AssumeRoleWithWebIdentity as plan role<br/>token subject repo:owner/repo:*
+  STS-->>GH: Short-lived read-only credentials
+  GH->>S3: Init remote state, lock with use_lockfile
+  GH->>AWS: tofu plan (read-only calls)
+  GH-->>Dev: Plan summary in the job summary
+  Dev->>GH: Merge, then run workflow with apply_env = dev or prod
+  Note over GH: Job targets a GitHub Environment,<br/>required reviewers must approve
+  GH->>STS: AssumeRoleWithWebIdentity as apply role<br/>token subject repo:owner/repo:environment:*
+  STS-->>GH: Short-lived credentials, no stored keys
+  GH->>AWS: tofu apply (locked state in S3)
+  GH->>S3: Write new state version

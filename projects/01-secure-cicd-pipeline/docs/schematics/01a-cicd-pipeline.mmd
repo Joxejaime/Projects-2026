@@ -1,0 +1,51 @@
+%% title: CI/CD pipeline stages
+%% headline: A merge cannot publish unless every gate is green
+%% takeaway: Lint, test, scan and secret-scan run first; only main publishes, signs and attests.
+%% legend: entry=Trigger,guard=Check or protection,app=Build and test,data=Evidence,cloud=Registry
+%% caption: .github/workflows/01-secure-cicd.yml. Three checks run in parallel; build-scan builds the image without pushing, smoke-tests it, fails on fixable HIGH or CRITICAL vulnerabilities and keeps an SBOM; the publish job runs only on main, pushes by digest, signs keylessly with cosign and attaches a provenance attestation.
+flowchart TB
+  trig(["Trigger: pull request, push to main, manual run"])
+
+  subgraph PRCHK["1. Checks in parallel"]
+    direction LR
+    q["quality<br/>ruff lint and<br/>15 unit tests"]
+    h["dockerfile-lint<br/>hadolint"]
+    s["secret-scan<br/>gitleaks over<br/>full history"]
+  end
+
+  subgraph BS["2. build-scan, needs quality and dockerfile-lint"]
+    direction TB
+    b["Build image, not pushed<br/>APP_VERSION = commit SHA"]
+    sm["Smoke test container<br/>/healthz, then app_info<br/>in /metrics"]
+    tv["Trivy scan<br/>fail on fixable<br/>HIGH or CRITICAL"]
+    up["Upload SARIF<br/>to Security tab"]
+    sb["SBOM, SPDX JSON<br/>kept as artifact"]
+    b --> sm --> tv --> up --> sb
+  end
+
+  subgraph PUB["3. publish, main only, needs build-scan and secret-scan"]
+    direction LR
+    pu["Push to ghcr.io<br/>tags sha-commit, latest"]
+    cs["cosign sign by digest<br/>keyless via GitHub OIDC"]
+    at["Attest build provenance<br/>pushed to the registry"]
+    pu --> cs --> at
+  end
+
+  trig --> PRCHK
+  PRCHK --> BS
+  BS -->|"merge to main"| PUB
+
+    classDef entry fill:#E0E7FF,stroke:#4F46E5,stroke-width:2.5px,color:#1E1B4B
+    classDef app fill:#DBEAFE,stroke:#2563EB,stroke-width:2.5px,color:#0B2A5B
+    classDef guard fill:#CCFBF1,stroke:#0D9488,stroke-width:2.5px,color:#04443F
+    classDef data fill:#FEF3C7,stroke:#D97706,stroke-width:2.5px,color:#5B3300
+    classDef obs fill:#EDE9FE,stroke:#7C3AED,stroke-width:2.5px,color:#2E1065
+    classDef alert fill:#FFE4E6,stroke:#E11D48,stroke-width:2.5px,color:#6B0A20
+    classDef ok fill:#DCFCE7,stroke:#16A34A,stroke-width:2.5px,color:#052E16
+    classDef cloud fill:#FFEDD5,stroke:#EA580C,stroke-width:2.5px,color:#431407
+    classDef neutral fill:#F1F5F9,stroke:#64748B,stroke-width:2.5px,color:#0F172A
+    class trig entry
+    class q,h,s,tv,cs,at guard
+    class b,sm app
+    class up,sb data
+    class pu cloud

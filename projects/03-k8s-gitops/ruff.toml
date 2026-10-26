@@ -1,0 +1,11 @@
+# Applies to all Python outside projects/01 (which carries its own pyproject.toml).
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N", "RUF", "EXE"]
+
+[lint.per-file-ignores]
+"**/test_*.py" = ["S101", "S603", "S607", "E402", "I001", "E501"]
+"**/build_dashboard.py" = ["E501"]   # dense, declarative panel definitions
+"**/loadgen.py" = ["S311"]           # random is for traffic shaping, not security

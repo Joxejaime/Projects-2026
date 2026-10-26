@@ -1,0 +1,27 @@
+%% title: Container lifecycle
+%% headline: Drains before it stops
+%% takeaway: On SIGTERM readiness flips to 503 first, so traffic leaves before the process exits.
+%% caption: app/server.py. Liveness and readiness probes, Prometheus scraping, and the graceful-shutdown sequence: SIGTERM turns readiness off, the load balancer removes the instance, in-flight requests finish, then the process exits after the grace period.
+sequenceDiagram
+  autonumber
+  participant LB as Load balancer / kubelet
+  participant App as release-tracker process
+  participant Prom as Prometheus
+
+  Note over LB,Prom: Process starts with PORT, APP_VERSION and SHUTDOWN_GRACE_SECONDS
+  LB->>App: GET /healthz (liveness)
+  App-->>LB: 200 ok
+  LB->>App: GET /readyz (readiness)
+  App-->>LB: 200 ready
+  Note over LB,Prom: Traffic flows. Each request gets an X-Request-Id,<br/>one JSON log line and a latency histogram sample
+  Prom->>App: GET /metrics every 15s
+  App-->>Prom: counters, histogram buckets, app_info
+
+  Note over LB,Prom: Deploy or scale-in sends SIGTERM
+  LB->>App: SIGTERM
+  App->>App: readiness flag = false, start grace timer
+  LB->>App: GET /readyz
+  App-->>LB: 503 shutting_down
+  Note over LB,Prom: Removed from rotation, in-flight requests finish
+  App->>App: Grace timer expires, server.shutdown()
+  App-->>LB: process exits cleanly

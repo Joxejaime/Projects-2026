@@ -1,0 +1,26 @@
+groups:
+  - name: service-health
+    rules:
+      - alert: TargetDown
+        expr: up{job="release-tracker"} == 0
+        for: 2m
+        labels:
+          severity: page
+          service: release-tracker
+          slo: availability
+        annotations:
+          summary: "{{ $labels.instance }} is not being scraped"
+          description: Prometheus has failed to scrape this target for 2 minutes. The instance is down or unreachable.
+          runbook: docs/runbooks/target-down.md
+
+      - alert: CrashLooping
+        expr: changes(process_start_time_seconds{job="release-tracker"}[15m]) > 2
+        for: 1m
+        labels:
+          severity: page
+          service: release-tracker
+          slo: availability
+        annotations:
+          summary: "{{ $labels.instance }} restarted more than twice in 15 minutes"
+          description: The process start time keeps changing, which indicates a crash loop or repeated rescheduling.
+          runbook: docs/runbooks/target-down.md

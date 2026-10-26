@@ -1,0 +1,138 @@
+name: 03 - Kubernetes manifests and GitOps promotion
+
+on:
+  pull_request:
+    paths:
+      - "projects/03-k8s-gitops/**"
+      - ".github/workflows/03-k8s-gitops.yml"
+  push:
+    branches: [main]
+    paths:
+      - "projects/03-k8s-gitops/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Overlay to update"
+        type: choice
+        options: [dev, prod]
+        default: dev
+      image_tag:
+        description: "Image tag to promote, e.g. sha-<40 hex chars> (published by workflow 01)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: k8s-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  K8S_DIR: projects/03-k8s-gitops
+
+jobs:
+  validate:
+    name: Validate (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.4.3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install pyyaml
+      - name: Render overlay
+        run: kustomize build "${K8S_DIR}/k8s/overlays/${{ matrix.env }}" > rendered.yaml
+      - name: Schema validation (kubeconform, strict)
+        run: |
+          docker run --rm -i ghcr.io/yannh/kubeconform:v0.7.0 \
+            -strict -summary -kubernetes-version 1.31.0 - < rendered.yaml
+      - name: Policy checks
+        run: python3 -I "${K8S_DIR}/scripts/policy_check.py" < rendered.yaml
+      - name: Argo CD manifests (CRD schemas)
+        if: matrix.env == 'dev'
+        run: |
+          docker run --rm -v "$PWD/${K8S_DIR}/argocd:/argocd:ro" ghcr.io/yannh/kubeconform:v0.7.0 \
+            -strict -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /argocd
+
+  policy-tests:
+    name: Policy checker tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.4.3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install pyyaml
+      - run: python -m unittest "${K8S_DIR}/scripts/test_policy_check.py" -v
+
+  promote:
+    name: Open promotion PR
+    if: github.event_name == 'workflow_dispatch'
+    needs: [validate, policy-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate tag format
+        env:
+          TAG: ${{ inputs.image_tag }}
+        run: |
+          [[ "$TAG" =~ ^sha-[0-9a-f]{40}$ ]] || { echo "tag must look like sha-<40 hex>"; exit 1; }
+      - uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.4.3
+      - name: Bump image tag in overlay
+        working-directory: ${{ env.K8S_DIR }}/k8s/overlays/${{ inputs.environment }}
+        env:
+          TAG: ${{ inputs.image_tag }}
+          OWNER: ${{ github.repository_owner }}
+        run: kustomize edit set image "ghcr.io/${OWNER}/release-tracker:${TAG}"
+      # The `validate` job checks the repository as it is now. Re-check the manifests as they
+      # will be AFTER the bump, so a bad promotion never becomes a pull request.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install pyyaml
+      - name: Validate the promoted overlay
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          kustomize build "${K8S_DIR}/k8s/overlays/${ENVIRONMENT}" > promoted.yaml
+          docker run --rm -i ghcr.io/yannh/kubeconform:v0.7.0 \
+            -strict -summary -kubernetes-version 1.31.0 - < promoted.yaml
+          python3 -I "${K8S_DIR}/scripts/policy_check.py" < promoted.yaml
+          rm promoted.yaml
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: promote/${{ inputs.environment }}-${{ inputs.image_tag }}
+          title: "promote(${{ inputs.environment }}): release-tracker ${{ inputs.image_tag }}"
+          commit-message: "promote(${{ inputs.environment }}): release-tracker ${{ inputs.image_tag }}"
+          body: |
+            Promotes `${{ inputs.image_tag }}` to **${{ inputs.environment }}**.
+
+            The promoted overlay was already rendered, schema-checked and policy-checked by the
+            workflow run that opened this PR. (PRs created with the default token do not start
+            other workflows; use a PAT or GitHub App token if you want checks to re-run here.)
+
+            Merging this PR is the deployment: Argo CD syncs the overlay
+            (automatically for dev, on manual sync for prod).
+          labels: promotion

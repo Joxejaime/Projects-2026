@@ -1,0 +1,186 @@
+name: 02 - Terraform platform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/02-aws-terraform-platform/**"
+      - ".github/workflows/02-terraform.yml"
+  pull_request:
+    paths:
+      - "projects/02-aws-terraform-platform/**"
+      - ".github/workflows/02-terraform.yml"
+  workflow_dispatch:
+    inputs:
+      apply_env:
+        description: "Apply this environment (requires a protected GitHub Environment with the same name)"
+        type: choice
+        options: ["none", "dev", "prod"]
+        default: "none"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false # never cancel a run that may hold a state lock
+
+env:
+  TF_DIR: projects/02-aws-terraform-platform
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  static:
+    name: Format, wiring, validate (${{ matrix.dir }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [bootstrap, envs/dev, envs/prod]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.6
+      - name: Format check
+        run: tofu fmt -recursive -check -diff
+        working-directory: ${{ env.TF_DIR }}
+      - name: Module wiring check
+        run: python3 -I scripts/check_wiring.py
+        working-directory: ${{ env.TF_DIR }}
+      - name: Init (no backend) and validate
+        working-directory: ${{ env.TF_DIR }}/${{ matrix.dir }}
+        run: |
+          tofu init -backend=false -input=false
+          tofu validate
+
+  security:
+    name: IaC security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: terraform-linters/setup-tflint@v4
+      - name: TFLint
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          tflint --init
+          tflint --recursive --minimum-failure-severity=warning
+      - name: Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ${{ env.TF_DIR }}
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov.sarif
+          # Report-only until the first findings are triaged (fix or document each skip),
+          # then flip to false so the scan gates merges.
+          soft_fail: true
+          skip_check: ${{ vars.CHECKOV_SKIPS }}
+      - name: Summarise Checkov findings and drop suppressed results
+        if: always()
+        run: |
+          f=$(find checkov.sarif -type f -name '*.sarif' 2>/dev/null | head -n 1)
+          [ -n "$f" ] || f=checkov.sarif
+          [ -f "$f" ] || { echo "::error title=Checkov::no SARIF file found"; exit 1; }
+          total=$(jq '[.runs[].results[]?] | length' "$f")
+          open=$(jq '[.runs[].results[]? | select((.suppressions // []) | length == 0)] | length' "$f")
+          echo "::notice title=Checkov counts::total=$total unsuppressed=$open suppressed=$((total-open))"
+          jq -r '[.runs[].results[]? | select((.suppressions // []) | length == 0) | "\(.ruleId) \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)"] | unique | .[]' "$f" \
+            | head -n 10 | while read -r line; do echo "::notice title=Checkov unsuppressed::$line"; done
+          # Inline `#checkov:skip` decisions (with reasons) live in the code; keep them out of the Security tab.
+          # Written to a new directory: the Checkov container runs as root and owns its own output.
+          mkdir -p sarif-filtered
+          jq '.runs[].results |= map(select((.suppressions // []) | length == 0))' "$f" > sarif-filtered/checkov.sarif
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif-filtered/checkov.sarif
+
+  plan:
+    name: Plan (${{ matrix.env }})
+    # Runs only after the repo owner configures OIDC (see docs/SETUP.md); skipped otherwise.
+    if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != ''
+    needs: [static]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    strategy:
+      matrix:
+        env: [dev, prod]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.6
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Init with remote state
+        working-directory: ${{ env.TF_DIR }}/envs/${{ matrix.env }}
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=release-tracker/${{ matrix.env }}/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
+            -backend-config="use_lockfile=true"
+      - name: Plan
+        working-directory: ${{ env.TF_DIR }}/envs/${{ matrix.env }}
+        run: tofu plan -input=false -lock-timeout=5m -no-color -out=tfplan | tee plan.txt
+        env:
+          TF_VAR_image: ${{ vars.TF_VAR_IMAGE }}
+          TF_VAR_certificate_arn: ${{ vars.TF_VAR_CERTIFICATE_ARN }}
+      - name: Show plan summary
+        if: always()
+        run: |
+          {
+            echo "### Plan: ${{ matrix.env }}"
+            echo '```'
+            tail -n 40 "${TF_DIR}/envs/${{ matrix.env }}/plan.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    name: Apply (${{ inputs.apply_env }})
+    if: github.event_name == 'workflow_dispatch' && inputs.apply_env != 'none'
+    needs: [static, security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The named Environment carries required reviewers; the OIDC trust policy only
+    # accepts tokens whose subject is repo:<owner>/<repo>:environment:*.
+    environment: ${{ inputs.apply_env }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.10.6
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Init with remote state
+        working-directory: ${{ env.TF_DIR }}/envs/${{ inputs.apply_env }}
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=release-tracker/${{ inputs.apply_env }}/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
+            -backend-config="use_lockfile=true"
+      - name: Apply
+        working-directory: ${{ env.TF_DIR }}/envs/${{ inputs.apply_env }}
+        run: tofu apply -input=false -auto-approve -lock-timeout=5m
+        env:
+          TF_VAR_image: ${{ vars.TF_VAR_IMAGE }}
+          TF_VAR_certificate_arn: ${{ vars.TF_VAR_CERTIFICATE_ARN }}
