@@ -39,8 +39,8 @@ jobs:
       matrix:
         dir: [bootstrap, envs/dev, envs/prod]
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.13.0
           terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
@@ -64,8 +64,8 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: actions/checkout@v7
+      - uses: terraform-linters/setup-tflint@v6
       - name: TFLint
         working-directory: ${{ env.TF_DIR }}
         run: |
@@ -99,7 +99,7 @@ jobs:
           jq '.runs[].results |= map(select((.suppressions // []) | length == 0))' "$f" > sarif-filtered/checkov.sarif
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: sarif-filtered/checkov.sarif
 
@@ -118,12 +118,12 @@ jobs:
       matrix:
         env: [dev, prod]
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.13.0
           terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
@@ -164,12 +164,12 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.13.0
           terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}

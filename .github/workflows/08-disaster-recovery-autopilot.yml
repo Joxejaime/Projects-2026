@@ -30,8 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Make sure PostgreSQL server binaries are present
@@ -55,7 +55,7 @@ jobs:
         run: python -m drpilot replay examples/replica-lag-firing.json examples/replica-lag-resolved.json --state "$RUNNER_TEMP/state" --postmortems "$RUNNER_TEMP/postmortems"
       - name: Upload the postmortem drafts this run generated
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: postmortem-drafts
           path: ${{ runner.temp }}/postmortems
@@ -66,8 +66,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.13.0
           terraform_wrapper: false
@@ -79,7 +79,7 @@ jobs:
         run: |
           terraform init -backend=false -input=false
           terraform validate
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: terraform-linters/setup-tflint@v6
       - name: TFLint
         working-directory: projects/08-disaster-recovery-autopilot/infra/backup-bucket
         run: |
@@ -95,7 +95,7 @@ jobs:
     env:
       PROM_VERSION: "2.55.1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install promtool
         run: |
           curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz" | tar -xz
