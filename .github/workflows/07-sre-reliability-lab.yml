@@ -1,15 +1,15 @@
-name: sre-reliability-lab
+name: 07 - SRE reliability lab
 
 # Monorepo workflow: runs only when this project (or this file) changes.
 on:
   push:
     branches: [main]
     paths:
-      - "projects/sre-reliability-lab/**"
+      - "projects/07-sre-reliability-lab/**"
       - ".github/workflows/sre-reliability-lab.yml"
   pull_request:
     paths:
-      - "projects/sre-reliability-lab/**"
+      - "projects/07-sre-reliability-lab/**"
       - ".github/workflows/sre-reliability-lab.yml"
 
 permissions:
@@ -21,10 +21,11 @@ concurrency:
 
 defaults:
   run:
-    working-directory: projects/sre-reliability-lab
+    working-directory: projects/07-sre-reliability-lab
 
 jobs:
   verify:
+    name: Lint, SLOs, tests and chaos runs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,15 +45,25 @@ jobs:
         run: python -m unittest discover -s tests -t . -v
 
   prometheus-rules:
-    # Authoritative syntax and unit check of the generated rules using Prometheus' own tooling.
+    # Authoritative syntax check of the generated rules using Prometheus' own tooling.
+    # promtool is downloaded onto the runner rather than running the job inside
+    # prom/prometheus: that image has no Node.js, so actions/checkout cannot run in it.
+    name: Prometheus rule checks
     runs-on: ubuntu-latest
-    container: prom/prometheus:v2.55.1
+    env:
+      PROM_VERSION: "2.55.1"
     steps:
       - uses: actions/checkout@v4
+      - name: Install promtool
+        run: |
+          curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz" | tar -xz
+          mkdir -p "$HOME/bin"
+          cp "prometheus-${PROM_VERSION}.linux-amd64/promtool" "$HOME/bin/"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
       - name: promtool check rules
-        run: promtool check rules projects/sre-reliability-lab/generated/shop-api.rules.yml
+        run: promtool check rules projects/07-sre-reliability-lab/generated/shop-api.rules.yml
       - name: promtool check config
-        working-directory: projects/sre-reliability-lab
+        working-directory: projects/07-sre-reliability-lab
         run: |
           cp observability/prometheus.yml /tmp/prometheus.yml
           sed -i 's#/etc/prometheus/rules/\*.yml#generated/*.yml#' /tmp/prometheus.yml

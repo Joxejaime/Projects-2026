@@ -1,4 +1,4 @@
-# Schematics: 00-devops-series-overview
+# Schematics: 00-start-here
 
 Diagrams are Mermaid, so GitHub renders them inline below. Each also has a rendered `.svg` next to its
 `.mmd` source. Edit the `.mmd` file, then run `python3 scripts/build_schematics.py` from the repository root.

@@ -1,15 +1,15 @@
-name: self-service-platform
+name: 06 - Self-service platform
 
 # Monorepo workflow: runs only when this project (or this file) changes.
 on:
   push:
     branches: [main]
     paths:
-      - "projects/self-service-platform/**"
+      - "projects/06-self-service-platform/**"
       - ".github/workflows/self-service-platform.yml"
   pull_request:
     paths:
-      - "projects/self-service-platform/**"
+      - "projects/06-self-service-platform/**"
       - ".github/workflows/self-service-platform.yml"
 
 permissions:
@@ -21,10 +21,11 @@ concurrency:
 
 defaults:
   run:
-    working-directory: projects/self-service-platform
+    working-directory: projects/06-self-service-platform
 
 jobs:
   test:
+    name: Lint, tests and golden path
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +55,7 @@ jobs:
         run: "! python -m platformctl validate examples/non-compliant/legacy-batch"
 
   terraform:
+    name: Terraform checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,8 +64,8 @@ jobs:
           terraform_version: "1.9.8"
       - run: terraform fmt -check -recursive
       - name: Validate module
-        working-directory: projects/self-service-platform/terraform/modules/service-environment
+        working-directory: projects/06-self-service-platform/terraform/modules/service-environment
         run: terraform init -backend=false -input=false && terraform validate
       - name: Validate generated environments
-        working-directory: projects/self-service-platform/infra/services
+        working-directory: projects/06-self-service-platform/infra/services
         run: terraform init -backend=false -input=false && terraform validate

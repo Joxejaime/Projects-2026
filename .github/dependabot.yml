@@ -19,3 +19,19 @@ updates:
     directory: /projects/02-aws-terraform-platform/envs/prod
     schedule:
       interval: weekly
+  - package-ecosystem: docker
+    directory: /projects/05-ai-reliability-platform
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/05-ai-reliability-platform/terraform
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/06-self-service-platform/terraform/modules/service-environment
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /projects/07-sre-reliability-lab
+    schedule:
+      interval: weekly
