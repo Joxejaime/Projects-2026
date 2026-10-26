@@ -97,21 +97,22 @@ jobs:
       - name: Vulnerability scan (fail on HIGH/CRITICAL)
         # Run Trivy from its pinned container image instead of a third-party action:
         # one less action in the supply chain, and the scanner version is explicit.
-        # Findings are surfaced as annotations so a failure explains itself on the run page.
+        # One scan produces JSON; the SARIF is converted from it, so the vulnerability database is
+        # downloaded once (a second download in a fresh container can hit registry rate limits).
+        # Findings and scanner errors are surfaced as annotations so a failure explains itself.
         run: |
-          trivy() {
-            docker run --rm \
+          TRIVY=aquasec/trivy:0.57.1
+          mkdir -p .trivycache
+          if ! docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$PWD/.trivycache:/root/.cache/trivy" \
               -v "$PWD:/out" \
-              aquasec/trivy:0.57.1 image \
-              --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 \
-              "$@" release-tracker:ci
-          }
-          if ! trivy --format sarif --output /out/trivy.sarif 2> trivy.err; then
+              "$TRIVY" image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 \
+              --format json --output /out/trivy.json release-tracker:ci 2> trivy.err; then
             echo "::error title=Trivy scanner error::$(tail -n 5 trivy.err | tr '\n' ' ')"
             exit 1
           fi
-          trivy --format json --output /out/trivy.json 2>/dev/null
+          docker run --rm -v "$PWD:/out" "$TRIVY" convert --format sarif --output /out/trivy.sarif /out/trivy.json
           count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy.json)
           echo "HIGH/CRITICAL fixable vulnerabilities: $count"
           jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | "\(.Severity) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) [\($t)]"' trivy.json \
