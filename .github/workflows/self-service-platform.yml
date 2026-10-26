@@ -1,0 +1,69 @@
+name: self-service-platform
+
+# Monorepo workflow: runs only when this project (or this file) changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/self-service-platform/**"
+      - ".github/workflows/self-service-platform.yml"
+  pull_request:
+    paths:
+      - "projects/self-service-platform/**"
+      - ".github/workflows/self-service-platform.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: self-service-platform-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: projects/self-service-platform
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt ruff
+      - run: ruff check . && ruff format --check .
+      - run: python -m unittest discover -s tests -t . -v
+
+  golden-path-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Scaffold, validate, and test a service for each tier
+        run: |
+          for tier in critical standard best-effort; do
+            python -m platformctl new "demo-$tier" --owner team-demo --tier "$tier" --out "/tmp/demo-$tier"
+            python -m platformctl validate "/tmp/demo-$tier" --strict
+            (cd "/tmp/demo-$tier" && python -m unittest discover -s tests -t .)
+          done
+      - name: Non-compliant example must fail validation
+        run: "! python -m platformctl validate examples/non-compliant/legacy-batch"
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - run: terraform fmt -check -recursive
+      - name: Validate module
+        working-directory: projects/self-service-platform/terraform/modules/service-environment
+        run: terraform init -backend=false -input=false && terraform validate
+      - name: Validate generated environments
+        working-directory: projects/self-service-platform/infra/services
+        run: terraform init -backend=false -input=false && terraform validate

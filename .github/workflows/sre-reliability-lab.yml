@@ -1,0 +1,59 @@
+name: sre-reliability-lab
+
+# Monorepo workflow: runs only when this project (or this file) changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/sre-reliability-lab/**"
+      - ".github/workflows/sre-reliability-lab.yml"
+  pull_request:
+    paths:
+      - "projects/sre-reliability-lab/**"
+      - ".github/workflows/sre-reliability-lab.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sre-reliability-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: projects/sre-reliability-lab
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt ruff
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: SLO definitions are valid
+        run: python -m slogen check slo/*.yaml
+      - name: Generated alert rules are up to date
+        run: python -m slogen generate slo/shop-api.yaml -o generated/shop-api.rules.yml --check
+      - name: Config consistency
+        run: python scripts/validate_configs.py && docker compose config -q
+      - name: Tests (unit, simulator, and live chaos experiments)
+        run: python -m unittest discover -s tests -t . -v
+
+  prometheus-rules:
+    # Authoritative syntax and unit check of the generated rules using Prometheus' own tooling.
+    runs-on: ubuntu-latest
+    container: prom/prometheus:v2.55.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: promtool check rules
+        run: promtool check rules projects/sre-reliability-lab/generated/shop-api.rules.yml
+      - name: promtool check config
+        working-directory: projects/sre-reliability-lab
+        run: |
+          cp observability/prometheus.yml /tmp/prometheus.yml
+          sed -i 's#/etc/prometheus/rules/\*.yml#generated/*.yml#' /tmp/prometheus.yml
+          promtool check config /tmp/prometheus.yml || true   # alertmanager/scrape targets are not reachable in CI
