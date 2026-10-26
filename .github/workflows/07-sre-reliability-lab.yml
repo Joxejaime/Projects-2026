@@ -6,11 +6,11 @@ on:
     branches: [main]
     paths:
       - "projects/07-sre-reliability-lab/**"
-      - ".github/workflows/sre-reliability-lab.yml"
+      - ".github/workflows/07-sre-reliability-lab.yml"
   pull_request:
     paths:
       - "projects/07-sre-reliability-lab/**"
-      - ".github/workflows/sre-reliability-lab.yml"
+      - ".github/workflows/07-sre-reliability-lab.yml"
 
 permissions:
   contents: read

@@ -8,11 +8,11 @@ on:
     tags: ["ai-reliability-platform-v*.*.*"]
     paths:
       - "projects/05-ai-reliability-platform/**"
-      - ".github/workflows/ai-reliability-platform.yml"
+      - ".github/workflows/05-ai-reliability-platform.yml"
   pull_request:
     paths:
       - "projects/05-ai-reliability-platform/**"
-      - ".github/workflows/ai-reliability-platform.yml"
+      - ".github/workflows/05-ai-reliability-platform.yml"
 
 permissions:
   contents: read

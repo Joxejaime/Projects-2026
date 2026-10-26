@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - "projects/03-k8s-gitops/**"
+      - ".github/workflows/03-k8s-gitops.yml"
   workflow_dispatch:
     inputs:
       environment:
