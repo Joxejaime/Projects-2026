@@ -1,0 +1,18 @@
+[project]
+name = "platformctl"
+version = "0.1.0"
+description = "Self-service golden paths, policy guardrails and a service catalog"
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6", "jinja2>=3.1"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+extend-exclude = ["examples", "platformctl/templates"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B"]

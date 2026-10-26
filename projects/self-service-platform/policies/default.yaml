@@ -1,0 +1,19 @@
+# Platform policy defaults. Pass a file like this to override them:
+#   python -m platformctl validate ./my-service --policy policies/default.yaml
+# Keys omitted here fall back to the built-in defaults; unknown keys are rejected.
+
+# Images must come from one of these registry prefixes.
+allowed_registries:
+  - ghcr.io/example-org/
+
+# Labels every workload must carry (ownership and tiering drive routing, cost and alerting).
+required_labels:
+  - app.kubernetes.io/name
+  - platform.example/owner
+  - platform.example/tier
+
+# Minimum Deployment replicas per reliability tier.
+min_replicas:
+  critical: 3
+  standard: 2
+  best-effort: 1

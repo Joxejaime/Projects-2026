@@ -1,0 +1,19 @@
+# Deliberately non-compliant: demonstrates what `platformctl validate` catches.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: legacy-batch
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: legacy-batch}
+  template:
+    metadata:
+      labels: {app: legacy-batch}
+    spec:
+      hostNetwork: true
+      containers:
+        - name: batch
+          image: docker.io/someone/legacy-batch:latest
+          securityContext:
+            privileged: true

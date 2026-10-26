@@ -1,0 +1,19 @@
+ERROR   K8S010 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch]: missing required label 'app.kubernetes.io/name'
+ERROR   K8S010 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch]: missing required label 'platform.example/owner'
+ERROR   K8S010 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch]: missing required label 'platform.example/tier'
+ERROR   K8S009 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch]: tier 'critical' requires at least 3 replicas, got 1
+ERROR   K8S008 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch]: hostNetwork must not be enabled
+ERROR   K8S001 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: image 'docker.io/someone/legacy-batch:latest' must use a pinned tag or digest, not 'latest'
+ERROR   K8S002 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: image 'docker.io/someone/legacy-batch:latest' is not from an allowed registry ['ghcr.io/example-org/']
+ERROR   K8S003 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: resources missing: cpu, memory, limits.memory
+ERROR   K8S004 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: must set runAsNonRoot: true
+ERROR   K8S005 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: must set allowPrivilegeEscalation: false
+ERROR   K8S008 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: privileged containers are not allowed
+WARNING K8S006 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: consider readOnlyRootFilesystem: true
+ERROR   K8S007 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: readinessProbe is required
+WARNING K8S011 examples/non-compliant/legacy-batch/k8s/deployment.yaml [Deployment/legacy-batch] container batch: livenessProbe is recommended
+ERROR   DOCK002 examples/non-compliant/legacy-batch/Dockerfile: base image 'python:latest' must use a pinned tag, not 'latest'
+ERROR   DOCK001 examples/non-compliant/legacy-batch/Dockerfile: final stage must set a non-root USER
+WARNING DOCK003 examples/non-compliant/legacy-batch/Dockerfile: no HEALTHCHECK instruction (fine if the orchestrator probes it)
+
+legacy-batch: 14 error(s), 3 warning(s)

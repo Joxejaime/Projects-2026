@@ -1,0 +1,46 @@
+"""orders-api: replace the handler below with your service logic.
+
+Golden-path contract (the platform's probes and dashboards rely on it):
+  GET /healthz  -> 200 while the process is able to serve
+  PORT env var  -> listen port (default 8080)
+  SIGTERM       -> stop accepting connections and exit cleanly
+"""
+
+import json
+import os
+import signal
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802
+        if self.path == "/healthz":
+            code, body = 200, {"status": "ok"}
+        elif self.path == "/":
+            code, body = 200, {"service": "orders-api", "message": "hello from the golden path"}
+        else:
+            code, body = 404, {"error": "not found"}
+        payload = json.dumps(body).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def log_message(self, fmt, *args):
+        print(json.dumps({"msg": fmt % args, "service": "orders-api"}), flush=True)
+
+
+def create_server(port):
+    return ThreadingHTTPServer(("0.0.0.0", port), Handler)  # noqa: S104 - container workload
+
+
+def main():
+    server = create_server(int(os.environ.get("PORT", "8080")))
+    signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=server.shutdown, daemon=True).start())
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

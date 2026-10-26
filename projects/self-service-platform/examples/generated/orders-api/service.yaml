@@ -1,0 +1,12 @@
+apiVersion: platform/v1
+kind: Service
+name: orders-api
+owner: team-orders
+tier: standard
+language: python
+port: 8080
+replicas: 2
+registry: ghcr.io/example-org
+environments: [dev, prod]
+slo:
+  availability: 99.9

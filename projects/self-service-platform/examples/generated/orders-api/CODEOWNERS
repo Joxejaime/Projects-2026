@@ -1,0 +1,4 @@
+# Changes to the service spec and deployment config need the owning team's review.
+*                @example-org/team-orders
+/service.yaml    @example-org/team-orders
+/k8s/            @example-org/team-orders

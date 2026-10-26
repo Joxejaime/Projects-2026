@@ -1,0 +1,6 @@
+apiVersion: platform/v1
+kind: Service
+name: legacy-batch
+owner: team-ops
+tier: critical
+replicas: 1
