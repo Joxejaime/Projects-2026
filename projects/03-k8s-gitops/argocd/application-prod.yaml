@@ -8,7 +8,7 @@ metadata:
 spec:
   project: release-tracker
   source:
-    repoURL: https://github.com/Joxejaime/projects-2026.git
+    repoURL: https://github.com/Joxejaime/devops-portfolio.git
     targetRevision: main
     path: projects/03-k8s-gitops/k8s/overlays/prod
   destination:

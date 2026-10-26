@@ -6,7 +6,7 @@ metadata:
 spec:
   description: release-tracker environments
   sourceRepos:
-    - https://github.com/Joxejaime/projects-2026.git
+    - https://github.com/Joxejaime/devops-portfolio.git
   destinations:
     - server: https://kubernetes.default.svc
       namespace: release-tracker-dev

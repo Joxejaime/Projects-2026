@@ -44,7 +44,7 @@ python3 -m unittest scripts/test_policy_check.py
 # on a cluster with Argo CD and ingress-nginx installed
 kubectl apply -f argocd/project.yaml -f argocd/application-dev.yaml -f argocd/application-prod.yaml
 ```
-Image names and repository URLs already point at `Joxejaime/projects-2026`; change them if you fork this.
+Image names and repository URLs already point at `Joxejaime/devops-portfolio`; change them if you fork this.
 
 ## Verification status
 | Check | Status |

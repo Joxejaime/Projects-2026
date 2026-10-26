@@ -63,14 +63,14 @@ Nothing here is claimed unless it has been run. Each component README ends with 
 
 Live status of all eight pipelines:
 
-[![01](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml)
-[![02](https://github.com/Joxejaime/Projects-2026/actions/workflows/02-terraform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/02-terraform.yml)
-[![03](https://github.com/Joxejaime/Projects-2026/actions/workflows/03-k8s-gitops.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/03-k8s-gitops.yml)
-[![04](https://github.com/Joxejaime/Projects-2026/actions/workflows/04-observability.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/04-observability.yml)
-[![05](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml)
-[![06](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml)
-[![07](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml)
-[![08](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml)
+[![01](https://github.com/Joxejaime/devops-portfolio/actions/workflows/01-secure-cicd.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/01-secure-cicd.yml)
+[![02](https://github.com/Joxejaime/devops-portfolio/actions/workflows/02-terraform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/02-terraform.yml)
+[![03](https://github.com/Joxejaime/devops-portfolio/actions/workflows/03-k8s-gitops.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/03-k8s-gitops.yml)
+[![04](https://github.com/Joxejaime/devops-portfolio/actions/workflows/04-observability.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/04-observability.yml)
+[![05](https://github.com/Joxejaime/devops-portfolio/actions/workflows/05-ai-reliability-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/05-ai-reliability-platform.yml)
+[![06](https://github.com/Joxejaime/devops-portfolio/actions/workflows/06-self-service-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/06-self-service-platform.yml)
+[![07](https://github.com/Joxejaime/devops-portfolio/actions/workflows/07-sre-reliability-lab.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/07-sre-reliability-lab.yml)
+[![08](https://github.com/Joxejaime/devops-portfolio/actions/workflows/08-disaster-recovery-autopilot.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/08-disaster-recovery-autopilot.yml)
 
 **Not proven anywhere yet:** applying any Terraform to a real AWS account, an Argo CD sync on a real cluster,
 Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` against the published image.
@@ -85,7 +85,7 @@ The eight folders under `projects/` are the engineering record — one per compo
 `showcase/` is the reading view that groups them into the three projects above.
 
 ```
-projects-2026/
+devops-portfolio/
 ├── showcase/                           the three projects, as a reader meets them
 ├── projects/
 │   ├── 00-start-here/                  detailed index, end-to-end diagram, evidence plan
