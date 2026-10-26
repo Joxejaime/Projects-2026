@@ -28,8 +28,8 @@ jobs:
       run:
         working-directory: projects/ai-reliability-platform
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install tooling
@@ -51,8 +51,8 @@ jobs:
       run:
         working-directory: projects/ai-reliability-platform/terraform
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "1.9.8"
       - run: terraform fmt -check -recursive
@@ -67,23 +67,23 @@ jobs:
       packages: write
       security-events: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build image (loaded locally for scanning)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: projects/ai-reliability-platform
           load: true
           tags: ai-reliability-gateway:ci
       - name: Scan image for HIGH/CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ai-reliability-gateway:ci
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan IaC and manifests for misconfigurations
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: projects/ai-reliability-platform
@@ -91,7 +91,7 @@ jobs:
           exit-code: "0" # report-only: findings are reviewed, see docs/security.md
       - name: Log in to GHCR (release tags only)
         if: startsWith(github.ref, 'refs/tags/ai-reliability-platform-v')
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -99,12 +99,12 @@ jobs:
       - name: Image metadata
         if: startsWith(github.ref, 'refs/tags/ai-reliability-platform-v')
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/ai-reliability-gateway
       - name: Push release image with provenance and SBOM
         if: startsWith(github.ref, 'refs/tags/ai-reliability-platform-v')
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: projects/ai-reliability-platform
           push: true
