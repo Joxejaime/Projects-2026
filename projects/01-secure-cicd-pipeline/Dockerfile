@@ -11,7 +11,8 @@ ENV APP_VERSION=${APP_VERSION} \
 # Unprivileged user with a fixed UID so Kubernetes runAsUser/runAsNonRoot checks can be explicit.
 # The app is stdlib-only, so the package installers are removed from the runtime image: Trivy flagged
 # fixable HIGH CVEs in pip/setuptools and the libraries vendored inside them (urllib3, msgpack),
-# and nothing here needs them at runtime.
+# and nothing here needs them at runtime. ensurepip is removed too: its bundled pip wheel carries the
+# same vendored libraries and Trivy scans inside wheels.
 RUN groupadd --gid 10001 app \
     && useradd --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app \
     && python -m pip uninstall --yes pip setuptools wheel \
@@ -20,6 +21,7 @@ RUN groupadd --gid 10001 app \
               /usr/local/lib/python3.13/site-packages/pkg_resources* \
               /usr/local/lib/python3.13/site-packages/_distutils_hack* \
               /usr/local/lib/python3.13/site-packages/wheel* \
+              /usr/local/lib/python3.13/ensurepip \
               /usr/local/bin/pip*
 
 WORKDIR /app
