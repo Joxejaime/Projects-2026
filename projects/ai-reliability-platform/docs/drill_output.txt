@@ -1,0 +1,39 @@
+
+=== PHASE 1: healthy baseline (12 s @ 15 rps)
+requests=180 elapsed=12.1s success_ratio=1.0000
+status  : {200: 180}
+outcome : {'ok': 180}
+latency : p50=140ms p95=156ms p99=160ms max=196ms mean=141ms
+--- after baseline: circuit/fault state
+{"faults": {"primary": {"error_rate": 0.0, "extra_latency_ms": 0.0}, "fallback": {"error_rate": 0.0, "extra_latency_ms": 0.0}}, "circuits": {"primary": "closed", "fallback": "closed"}, "request_id": "27eee306ed534f21"}
+gateway_circuit_state{provider="fallback"} 0
+gateway_circuit_state{provider="primary"} 0
+gateway_requests_total{outcome="ok"} 180
+
+>>> injecting fault: primary provider returns errors for 100% of calls
+
+=== PHASE 2: primary outage (expect degraded responses via fallback, circuit opens) (12 s @ 15 rps)
+requests=180 elapsed=12.2s success_ratio=1.0000
+status  : {200: 180}
+outcome : {'degraded': 180}
+latency : p50=290ms p95=326ms p99=590ms max=751ms mean=298ms
+--- during outage: circuit/fault state
+{"faults": {"primary": {"error_rate": 1.0, "extra_latency_ms": 0.0}, "fallback": {"error_rate": 0.0, "extra_latency_ms": 0.0}}, "circuits": {"primary": "open", "fallback": "closed"}, "request_id": "f75913d83cfd4174"}
+gateway_circuit_state{provider="fallback"} 0
+gateway_circuit_state{provider="primary"} 2
+gateway_requests_total{outcome="degraded"} 180
+gateway_requests_total{outcome="ok"} 180
+
+>>> clearing fault
+
+=== PHASE 3: recovery (expect primary traffic to resume, circuit closes) (12 s @ 15 rps)
+requests=180 elapsed=12.1s success_ratio=1.0000
+status  : {200: 180}
+outcome : {'degraded': 2, 'ok': 178}
+latency : p50=141ms p95=156ms p99=171ms max=293ms mean=142ms
+--- after recovery: circuit/fault state
+{"faults": {"primary": {"error_rate": 0.0, "extra_latency_ms": 0.0}, "fallback": {"error_rate": 0.0, "extra_latency_ms": 0.0}}, "circuits": {"primary": "closed", "fallback": "closed"}, "request_id": "2cb1e9ac58e340b8"}
+gateway_circuit_state{provider="fallback"} 0
+gateway_circuit_state{provider="primary"} 0
+gateway_requests_total{outcome="degraded"} 182
+gateway_requests_total{outcome="ok"} 358

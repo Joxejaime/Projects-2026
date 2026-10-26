@@ -1,0 +1,12 @@
+.git
+.github
+docs
+terraform
+k8s
+tests
+loadtest
+scripts
+observability
+__pycache__
+*.pyc
+.venv

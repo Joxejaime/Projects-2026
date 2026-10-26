@@ -1,0 +1,21 @@
+[project]
+name = "ai-reliability-platform"
+version = "0.1.0"
+description = "Resilient LLM gateway with SLOs, observability, IaC and runbooks"
+requires-python = ">=3.11"
+dependencies = []  # runtime is standard library only, by design
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N"]
+# S101: asserts; S311: `random` is used for retry jitter, not cryptography;
+# N818: domain exceptions are named for what happened (RateLimited), not with an Error suffix
+ignore = ["S101", "S311", "N818"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "B"]
+"loadtest/*" = ["S"]
+"scripts/*" = ["S"]

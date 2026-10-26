@@ -1,0 +1,93 @@
+# SLO: 99.5% of valid requests succeed over 30 days  (error budget = 0.5%).
+#   good events = outcome in (ok, cached, degraded)   -> the user got an answer
+#   bad events  = outcome = failed                    -> upstream unavailable (HTTP 503)
+#   ignored     = rate_limited, budget_exceeded       -> client-caused, not our reliability
+#
+# Alerts follow the multi-window, multi-burn-rate approach from the Google SRE Workbook:
+# a long window proves the burn is sustained, a short window proves it is still happening.
+groups:
+  - name: gateway-slo-recording
+    rules:
+      - record: gateway:error_ratio:rate5m
+        expr: |
+          sum(rate(gateway_requests_total{outcome="failed"}[5m]))
+          /
+          clamp_min(sum(rate(gateway_requests_total{outcome=~"ok|cached|degraded|failed"}[5m])), 1e-9)
+      - record: gateway:error_ratio:rate30m
+        expr: |
+          sum(rate(gateway_requests_total{outcome="failed"}[30m]))
+          /
+          clamp_min(sum(rate(gateway_requests_total{outcome=~"ok|cached|degraded|failed"}[30m])), 1e-9)
+      - record: gateway:error_ratio:rate1h
+        expr: |
+          sum(rate(gateway_requests_total{outcome="failed"}[1h]))
+          /
+          clamp_min(sum(rate(gateway_requests_total{outcome=~"ok|cached|degraded|failed"}[1h])), 1e-9)
+      - record: gateway:error_ratio:rate6h
+        expr: |
+          sum(rate(gateway_requests_total{outcome="failed"}[6h]))
+          /
+          clamp_min(sum(rate(gateway_requests_total{outcome=~"ok|cached|degraded|failed"}[6h])), 1e-9)
+      - record: gateway:degraded_ratio:rate5m
+        expr: |
+          sum(rate(gateway_requests_total{outcome="degraded"}[5m]))
+          /
+          clamp_min(sum(rate(gateway_requests_total{outcome=~"ok|cached|degraded|failed"}[5m])), 1e-9)
+      - record: gateway:latency_p95_seconds:rate5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(gateway_request_duration_seconds_bucket[5m])))
+
+  - name: gateway-slo-alerts
+    rules:
+      # Burn rate 14.4 = consuming 2% of a 30-day budget in 1 hour.
+      - alert: GatewayErrorBudgetFastBurn
+        expr: gateway:error_ratio:rate1h > (14.4 * 0.005) and gateway:error_ratio:rate5m > (14.4 * 0.005)
+        for: 2m
+        labels: {severity: page}
+        annotations:
+          summary: "Gateway is burning error budget 14.4x too fast"
+          runbook: docs/runbooks/all-providers-down.md
+      # Burn rate 6 = 5% of the budget in 6 hours.
+      - alert: GatewayErrorBudgetSlowBurn
+        expr: gateway:error_ratio:rate6h > (6 * 0.005) and gateway:error_ratio:rate30m > (6 * 0.005)
+        for: 15m
+        labels: {severity: page}
+        annotations:
+          summary: "Gateway is burning error budget 6x too fast"
+          runbook: docs/runbooks/all-providers-down.md
+
+  - name: gateway-symptom-alerts
+    rules:
+      - alert: PrimaryProviderCircuitOpen
+        expr: gateway_circuit_state{provider="primary"} == 2
+        for: 1m
+        labels: {severity: ticket}
+        annotations:
+          summary: "Primary LLM provider circuit has been open for 1m; traffic is on the fallback"
+          runbook: docs/runbooks/primary-provider-degraded.md
+      - alert: FallbackServingHighShare
+        expr: gateway:degraded_ratio:rate5m > 0.25
+        for: 5m
+        labels: {severity: ticket}
+        annotations:
+          summary: "More than 25% of responses come from the fallback provider"
+          runbook: docs/runbooks/primary-provider-degraded.md
+      - alert: GatewayLatencyP95High
+        expr: gateway:latency_p95_seconds:rate5m > 1.5
+        for: 10m
+        labels: {severity: ticket}
+        annotations:
+          summary: "p95 request latency above 1.5s for 10m"
+          runbook: docs/runbooks/high-latency.md
+      - alert: TenantRateLimitingSpike
+        expr: sum(rate(gateway_requests_total{outcome="rate_limited"}[5m])) > 5
+        for: 10m
+        labels: {severity: info}
+        annotations:
+          summary: "Sustained rate limiting; one or more tenants may be misbehaving"
+      - alert: GatewayDown
+        expr: up{job="gateway"} == 0
+        for: 1m
+        labels: {severity: page}
+        annotations:
+          summary: "Gateway target is not being scraped"
+          runbook: docs/runbooks/all-providers-down.md

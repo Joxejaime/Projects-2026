@@ -1,0 +1,5 @@
+region      = "us-east-1"
+environment = "dev"
+image_tag   = "0.1.0"          # immutable tag you pushed to the ECR repository
+# alarm_email     = "you@example.com"
+# certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/..."   # enables HTTPS

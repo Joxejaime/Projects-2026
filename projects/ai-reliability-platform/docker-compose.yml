@@ -1,0 +1,51 @@
+# Local lab: gateway + Prometheus + Grafana.   make up  ->  http://localhost:3000 (admin/admin)
+# The admin token below is a LAB-ONLY value that enables fault injection. Never reuse it.
+services:
+  gateway:
+    build: .
+    image: ai-reliability-gateway:dev
+    ports:
+      - "8080:8080"
+    environment:
+      GATEWAY_ADMIN_TOKEN: lab-only-token
+      GATEWAY_BREAKER_RECOVERY_TIMEOUT: "15"
+      GATEWAY_RATE_LIMIT_RPS: "200"
+      GATEWAY_RATE_LIMIT_BURST: "400"
+      GATEWAY_LOG_LEVEL: INFO
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=2d
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/rules:/etc/prometheus/rules:ro
+    ports:
+      - "9090:9090"
+    depends_on: [gateway]
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus]
+
+  loadgen:
+    profiles: [load]
+    image: python:3.13-slim
+    volumes:
+      - ./loadtest:/loadtest:ro
+    command: ["python", "/loadtest/loadgen.py", "--url", "http://gateway:8080", "--rps", "15", "--duration", "300"]
+    depends_on: [gateway]
