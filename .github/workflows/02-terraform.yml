@@ -86,19 +86,21 @@ jobs:
         run: |
           f=$(find checkov.sarif -type f -name '*.sarif' 2>/dev/null | head -n 1)
           [ -n "$f" ] || f=checkov.sarif
-          [ -f "$f" ] || { echo "::notice title=Checkov::no SARIF file found"; exit 0; }
+          [ -f "$f" ] || { echo "::error title=Checkov::no SARIF file found"; exit 1; }
           total=$(jq '[.runs[].results[]?] | length' "$f")
           open=$(jq '[.runs[].results[]? | select((.suppressions // []) | length == 0)] | length' "$f")
           echo "::notice title=Checkov counts::total=$total unsuppressed=$open suppressed=$((total-open))"
           jq -r '[.runs[].results[]? | select((.suppressions // []) | length == 0) | "\(.ruleId) \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)"] | unique | .[]' "$f" \
             | head -n 10 | while read -r line; do echo "::notice title=Checkov unsuppressed::$line"; done
           # Inline `#checkov:skip` decisions (with reasons) live in the code; keep them out of the Security tab.
-          jq '.runs[].results |= map(select((.suppressions // []) | length == 0))' "$f" > checkov.filtered && mv checkov.filtered "$f"
+          # Written to a new directory: the Checkov container runs as root and owns its own output.
+          mkdir -p sarif-filtered
+          jq '.runs[].results |= map(select((.suppressions // []) | length == 0))' "$f" > sarif-filtered/checkov.sarif
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: checkov.sarif
+          sarif_file: sarif-filtered/checkov.sarif
 
   plan:
     name: Plan (${{ matrix.env }})
