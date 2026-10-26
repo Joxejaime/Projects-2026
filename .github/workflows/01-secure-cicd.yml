@@ -103,13 +103,22 @@ jobs:
         run: |
           TRIVY=aquasec/trivy:0.57.1
           mkdir -p .trivycache
-          if ! docker run --rm \
-              -v /var/run/docker.sock:/var/run/docker.sock \
-              -v "$PWD/.trivycache:/root/.cache/trivy" \
-              -v "$PWD:/out" \
-              "$TRIVY" image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 \
-              --format json --output /out/trivy.json release-tracker:ci 2> trivy.err; then
-            echo "::error title=Trivy scanner error::$(tail -n 5 trivy.err | tr '\n' ' ')"
+          ok=0
+          for attempt in 1 2 3; do
+            if docker run --rm \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -v "$PWD/.trivycache:/root/.cache/trivy" \
+                -v "$PWD:/out" \
+                "$TRIVY" image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 \
+                --db-repository ghcr.io/aquasecurity/trivy-db:2 \
+                --db-repository public.ecr.aws/aquasecurity/trivy-db:2 \
+                --format json --output /out/trivy.json release-tracker:ci 2> trivy.err; then
+              ok=1; break
+            fi
+            echo "Trivy attempt $attempt failed, retrying"; sleep $((attempt * 20))
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "::error title=Trivy scanner error::$(grep -E 'FATA|ERROR' trivy.err | tail -n 3 | cut -c1-600 | tr '\n' ' ')"
             exit 1
           fi
           docker run --rm -v "$PWD:/out" "$TRIVY" convert --format sarif --output /out/trivy.sarif /out/trivy.json
@@ -119,7 +128,7 @@ jobs:
             | head -n 10 | while read -r line; do echo "::error title=Trivy finding::$line"; done
           [ "$count" -eq 0 ]
       - name: Upload scan results
-        if: always()
+        if: always() && hashFiles('trivy.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy.sarif
