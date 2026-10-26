@@ -59,15 +59,6 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--state", type=Path, default=Path("state/incidents"))
     s.add_argument("--postmortems", type=Path, default=Path("postmortems"))
 
-    w = sub.add_parser("watch", help="probe a health URL and send firing/resolved alerts to a responder")
-    w.add_argument("url")
-    w.add_argument("--alertname", required=True)
-    w.add_argument("--responder", required=True, help="the responder's /alerts URL")
-    w.add_argument("--label", action="append", default=[], help="extra alert label key=value (repeatable)")
-    w.add_argument("--failures", type=int, default=3)
-    w.add_argument("--successes", type=int, default=2)
-    w.add_argument("--interval", type=float, default=5.0)
-
     r = sub.add_parser("replay", help="feed recorded Alertmanager payloads through the responder, offline")
     r.add_argument("payloads", nargs="+", type=Path)
     r.add_argument("--playbooks", type=Path, default=PROJECT / "playbooks")
@@ -79,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
 
     d = sub.add_parser("drill", help="disaster-recovery drill against the demo notes service")
     d.add_argument("--out", type=Path, default=PROJECT / "postmortems" / "drills")
-    d.add_argument("--scenario", choices=["corrupt-data", "corrupt-backups"], default="corrupt-data")
+    d.add_argument("--scenario", choices=["dropped-table", "poisoned-backup", "corrupt-backups", "all"], default="dropped-table")
     d.add_argument("--timeout", type=float, default=60.0)
 
     args = parser.parse_args(argv)
@@ -103,14 +94,6 @@ def main(argv: list[str] | None = None) -> int:
         httpd.serve_forever()
         return 0
 
-    if args.cmd == "watch":
-        from .watch import Watcher, post_to
-
-        labels = _labels(args.label)
-        sink = post_to(args.responder, os.environ.get("DRPILOT_TOKEN"))
-        Watcher(args.url, args.alertname, sink, labels, failures=args.failures, successes=args.successes, interval=args.interval).run()
-        return 0
-
     if args.cmd == "replay":
         # Replayed incidents happened in the past, so the payload's own timestamps are the clock.
         # Alertmanager does not record delivery time, so time to detect here is measured from when
@@ -132,9 +115,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "drill":
-        from .drill import run_drill
+        from .drill import SCENARIOS, run_drill
 
-        result = run_drill(args.out, scenario=args.scenario, timeout=args.timeout)
-        print("\n".join(result.summary))
-        return 0 if result.passed else 1
+        passed = True
+        for scenario in SCENARIOS if args.scenario == "all" else (args.scenario,):
+            result = run_drill(args.out, scenario=scenario, timeout=args.timeout)
+            print("\n".join(result.summary) + "\n")
+            passed = passed and result.passed
+        return 0 if passed else 1
     return 2

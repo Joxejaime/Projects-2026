@@ -1,23 +1,40 @@
-# Alerts that drpilot has playbooks for. The probe_success series comes from a blackbox exporter
-# probing the notes service's /healthz; the labels here are what playbooks match on.
+# Rules for project 04's Prometheus: mount this file next to its rules (see observability/README.md). Alerts that
+# drpilot can act on carry `autoremediate: "true"`; Alertmanager routes exactly those to drpilot (see
+# alertmanager-snippet.yml), and humans are still notified through 04's normal routes.
 groups:
   - name: drpilot-recoverable
     rules:
-      - alert: NotesUnhealthy
-        expr: probe_success{job="notes-health"} == 0
+      - alert: OrdersDataUnhealthy
+        expr: orders_data_healthy == 0
         for: 1m
         labels:
           severity: page
-          service: notes
+          service: orders
+          autoremediate: "true"
         annotations:
-          summary: Notes service health check failing
-          description: "/healthz has failed for 1 minute; the data file may be corrupt or missing."
-          runbook_url: https://github.com/Joxejaime/Projects-2026/blob/main/projects/08-disaster-recovery-autopilot/docs/runbooks/notes-unhealthy.md
-      - alert: KubeDeploymentUnavailable
-        expr: kube_deployment_status_replicas_unavailable > 0
+          summary: Orders data is missing or unreachable
+          description: The orders service reports its tables missing or its database unavailable for 1 minute.
+          runbook: docs/runbooks/orders-data-unhealthy.md
+
+      - alert: BackupRestoreTestFailing
+        expr: drpilot_restore_test_success == 0
+        for: 5m
+        labels:
+          severity: ticket
+          service: backups
+          autoremediate: "true"
+        annotations:
+          summary: The newest database snapshot does not restore, or backups have stopped
+          description: The scheduled restore test failed. A backup that has not been restored is a hope, not a backup.
+          runbook: docs/runbooks/backup-restore-test.md
+
+      - alert: BackupRestoreTestStale
+        expr: time() - drpilot_restore_test_last_success_timestamp_seconds > 129600
         for: 10m
         labels:
-          severity: page
+          severity: ticket
+          service: backups
         annotations:
-          summary: "{{ $labels.deployment }} has unavailable replicas in {{ $labels.namespace }}"
-          description: "Replicas have been unavailable for 10 minutes, typically a bad rollout that crash-loops."
+          summary: No restore test has passed in 36 hours
+          description: The restore test job is not running, or it has been failing for a day and a half. Nothing recovers this automatically.
+          runbook: docs/runbooks/backup-restore-test.md

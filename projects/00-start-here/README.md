@@ -43,7 +43,7 @@ Four independent projects, each going further into a single theme. Nothing here 
 | 05 | [AI reliability platform](../05-ai-reliability-platform) | Retries with jitter, circuit breaker, fallback, rate limits and budgets, measured outage drill |
 | 06 | [Self-service platform](../06-self-service-platform) | Service scaffolding, policy-as-code with rule IDs, service catalog, Terraform environments |
 | 07 | [SRE reliability lab](../07-sre-reliability-lab) | SLOs as code, generated burn-rate alerts, incident simulator, chaos experiments, game days |
-| 08 | [Disaster recovery autopilot](../08-disaster-recovery-autopilot) | Alert-driven recovery playbooks, verified restores, RTO/RPO checks, automatic postmortem drafts, DR drills |
+| 08 | [Disaster recovery autopilot](../08-disaster-recovery-autopilot) | Alert-driven recovery playbooks, PostgreSQL restores proven in a scratch database, data validation, RTO/RPO checks, automatic postmortem drafts, DR drills; reuses 02, 03 and 04 |
 
 Projects 01 and 04 overlap in topic with 05 and 07, but are independent of them. The series versions are the
 more recent and more carefully verified; 05 and 07 go further into resilience patterns and chaos practice.

@@ -140,10 +140,17 @@ class Responder:
                 if not result.ok:
                     break
             else:
-                check = pb.verify(book, labels, **({"sleep": self.sleep} if self.sleep else {}))
-                attempt.steps.append(check)
-                attempt.verified = recovered = check.ok
-                self._update(incident_id, lambda i, c=check: i.log(self.clock(), "verify", f"Verification {'passed' if c.ok else 'FAILED'}: {c.detail}"))
+                checks, check_facts = pb.verify(book, labels, **({"sleep": self.sleep} if self.sleep else {}))
+                attempt.steps.extend(checks)
+                facts |= check_facts
+                attempt.verified = recovered = all(c.ok for c in checks)
+
+                def log_checks(i: Incident, results=checks, ok=recovered) -> None:
+                    for c in results:
+                        i.log(self.clock(), "verify", f"{c.name}: {'passed' if c.ok else 'FAILED'} ({c.detail})")
+                    i.log(self.clock(), "verify", f"Verification {'passed' if ok else 'FAILED'}")
+
+                self._update(incident_id, log_checks)
             attempt.finished_at = iso(self.clock())
 
             def record(i: Incident, a=attempt, f=facts, ok=recovered) -> None:

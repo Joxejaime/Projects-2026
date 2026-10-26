@@ -45,7 +45,7 @@ Four independent projects, each going further into one theme. Nothing here impor
 | 05 | [AI reliability platform](projects/05-ai-reliability-platform) | An AI-backed service that keeps answering when a provider fails: retries, circuit breaker, fallback, per-tenant limits, plus a measured outage drill | Python, Docker, Kubernetes, Terraform, Prometheus |
 | 06 | [Self-service platform](projects/06-self-service-platform) | A paved road: one command generates a compliant service, a policy engine checks any repo against rule IDs, and a catalog tracks what exists | Python, Jinja2, Terraform, Kubernetes, OIDC |
 | 07 | [SRE reliability lab](projects/07-sre-reliability-lab) | Reliability as numbers: one SLO file generates the alert rules, an incident simulator replays failures, and chaos runs produce game-day reports | Python, Prometheus, Alertmanager, chaos experiments |
-| 08 | [Disaster recovery autopilot](projects/08-disaster-recovery-autopilot) | When something breaks: alert opens an incident, a playbook restores and verifies, RTO/RPO are checked, and a postmortem draft is written automatically | Python, Alertmanager webhooks, backup/restore, GitHub Issues |
+| 08 | [Disaster recovery autopilot](projects/08-disaster-recovery-autopilot) | When something breaks: 04's alerts open an incident, a playbook restores a real PostgreSQL database from verified snapshots, data checks and RTO/RPO are verified, and a postmortem draft is written automatically | Python, PostgreSQL, Alertmanager webhooks, S3 (Terraform), pytest |
 
 Projects 01 and 04 overlap in topic with 05 and 07, but are independent of them.
 
@@ -64,7 +64,7 @@ Being precise about this is deliberate: nothing below is claimed unless it has b
 | 05 | 40 unit and end-to-end tests, image build and scan, Terraform checks; provider-outage drill | GitHub Actions, local |
 | 06 | 29 tests, scaffold → validate → generated-tests round trip, Terraform checks | GitHub Actions |
 | 07 | Lint, SLO validation, 33 tests including live chaos experiments, promtool rule checks | GitHub Actions |
-| 08 | Lint, playbook validation, 35 tests, two disaster-recovery drills (restore succeeds; corrupt backups refused and escalated) with their postmortem drafts committed | Local; CI workflow added, first run pending |
+| 08 | Lint, playbook validation, 85 pytest tests against a real PostgreSQL 16 server, three disaster-recovery drills (restore, poisoned backup skipped, rotted backup refused and escalated) with their postmortem drafts committed. Not run: Terraform for the backup bucket, AWS, promtool | Local; CI workflow added, first run pending |
 
 **Not proven anywhere yet:** applying any Terraform to a real AWS account, an Argo CD sync on a real cluster,
 Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` against the published image.
@@ -86,7 +86,7 @@ projects-2026/
 │   ├── 05-ai-reliability-platform/     gateway app, tests, k8s, terraform, observability, drill report
 │   ├── 06-self-service-platform/       platformctl, policies, terraform module, examples, catalog
 │   ├── 07-sre-reliability-lab/         slogen, chaos runner, demo service, observability, game days
-│   └── 08-disaster-recovery-autopilot/ drpilot responder, recovery playbooks, drills, postmortem drafts
+│   └── 08-disaster-recovery-autopilot/ drpilot responder, recovery tools, playbooks, drills, backup bucket
 ├── .github/workflows/                  one workflow per project (0N-*.yml), path-filtered to its folder
 ├── assets/linkedin/                    1080x1350 cards and a PDF carousel per project (none yet for 08)
 └── scripts/                            diagram rendering, card building, offline verification

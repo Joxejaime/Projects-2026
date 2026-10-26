@@ -50,11 +50,18 @@ class Step:
 
 @dataclass(frozen=True)
 class Verify:
-    url: str
+    """Recovered means: N consecutive healthy probes of `url` (if given), then every data check passes.
+
+    Probes prove the service answers; checks prove the data is right. A health endpoint cannot tell a
+    restored database from an empty one, which is why recovery validation is a separate, mandatory-to-pass list.
+    """
+
+    url: str | None = None
     expect_status: int = 200
     successes: int = 3
     interval_seconds: float = 1.0
     timeout_seconds: float = 60.0
+    checks: tuple[Step, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -71,6 +78,21 @@ class Playbook:
         return all(labels.get(k) == v for k, v in self.match.items())
 
 
+def _parse_steps(path: Path, items: object, label: str) -> list[Step]:
+    if not isinstance(items, list):
+        raise PlaybookError(f"{path}: {label}s must be a list")
+    steps = []
+    for i, s in enumerate(items, 1):
+        if not isinstance(s, dict) or "name" not in s or (("run" in s) == ("http" in s)):
+            raise PlaybookError(f"{path}: {label} {i} needs a name and exactly one of 'run' or 'http'")
+        if "run" in s and not (isinstance(s["run"], list) and s["run"] and all(isinstance(a, str) for a in s["run"])):
+            raise PlaybookError(f"{path}: {label} {i} 'run' must be a non-empty list of strings (no shell)")
+        if "http" in s and not (isinstance(s["http"], dict) and "url" in s["http"]):
+            raise PlaybookError(f"{path}: {label} {i} 'http' needs a url")
+        steps.append(Step(s["name"], s.get("run"), s.get("http"), float(s.get("timeout", 30))))
+    return steps
+
+
 def load(path: Path) -> Playbook:
     path = Path(path)
     raw = yaml.safe_load(path.read_text())
@@ -83,16 +105,17 @@ def load(path: Path) -> Playbook:
         raise PlaybookError(f"{path}: match must be a mapping that names at least an alertname")
     if not isinstance(raw["steps"], list) or not raw["steps"]:
         raise PlaybookError(f"{path}: steps must be a non-empty list")
-    steps = []
-    for i, s in enumerate(raw["steps"], 1):
-        if not isinstance(s, dict) or "name" not in s or (("run" in s) == ("http" in s)):
-            raise PlaybookError(f"{path}: step {i} needs a name and exactly one of 'run' or 'http'")
-        if "run" in s and not (isinstance(s["run"], list) and s["run"] and all(isinstance(a, str) for a in s["run"])):
-            raise PlaybookError(f"{path}: step {i} 'run' must be a non-empty list of strings (no shell)")
-        if "http" in s and not (isinstance(s["http"], dict) and "url" in s["http"]):
-            raise PlaybookError(f"{path}: step {i} 'http' needs a url")
-        steps.append(Step(s["name"], s.get("run"), s.get("http"), float(s.get("timeout", 30))))
-    verify = Verify(**raw["verify"]) if raw.get("verify") else None
+    steps = _parse_steps(path, raw["steps"], "step")
+    verify = None
+    if raw.get("verify"):
+        spec = dict(raw["verify"])
+        checks = tuple(_parse_steps(path, spec.pop("checks", []) or [], "verify check"))
+        try:
+            verify = Verify(**spec, checks=checks)
+        except TypeError as err:
+            raise PlaybookError(f"{path}: bad verify section ({err})") from err
+        if verify.url is None and not checks:
+            raise PlaybookError(f"{path}: verify needs a url, checks, or both")
     objectives = raw.get("objectives") or {}
     unknown = set(objectives) - {"rto_seconds", "rpo_seconds"}
     if unknown:
@@ -195,12 +218,33 @@ def _fetch(req: urllib.request.Request, timeout: float) -> tuple[int, str]:
         return err.code, err.read(OUTPUT_LIMIT).decode(errors="replace")
 
 
-def verify(playbook: Playbook, labels: dict, sleep=time.sleep) -> StepResult:
-    """Recovered means N consecutive healthy probes before the deadline, not a single lucky one."""
+def verify(playbook: Playbook, labels: dict, sleep=time.sleep) -> tuple[list[StepResult], dict]:
+    """Health probes first, then each data check once, in order, stopping at the first failure.
+
+    Returns every result (so the postmortem shows what ran) and the facts the checks reported.
+    """
     v = playbook.verify
-    start = time.monotonic()
     if v is None:
-        return StepResult("Verify", True, 0.0, "no verification configured; steps succeeded")
+        return [StepResult("Verify", True, 0.0, "no verification configured; steps succeeded")], {}
+    results: list[StepResult] = []
+    facts: dict = {}
+    if v.url is not None:
+        probes = _probe(playbook, v, labels, sleep)
+        results.append(probes)
+        if not probes.ok:
+            return results, facts
+    for check in v.checks:
+        result, check_facts = run_step(check, playbook, labels)
+        results.append(result)
+        facts |= check_facts
+        if not result.ok:
+            break
+    return results, facts
+
+
+def _probe(playbook: Playbook, v: Verify, labels: dict, sleep) -> StepResult:
+    """Recovered means N consecutive healthy probes before the deadline, not a single lucky one."""
+    start = time.monotonic()
     try:
         url = render(v.url, playbook, labels)
     except PlaybookError as err:
@@ -218,6 +262,6 @@ def verify(playbook: Playbook, labels: dict, sleep=time.sleep) -> StepResult:
             status, last = 0, f"unreachable ({err.__class__.__name__})"
         streak = streak + 1 if status == v.expect_status else 0
         if streak >= v.successes:
-            return StepResult("Verify", True, round(time.monotonic() - start, 3), f"{streak} consecutive healthy probes ({probes} total)")
+            return StepResult("Health probes", True, round(time.monotonic() - start, 3), f"{streak} consecutive healthy probes ({probes} total)")
         sleep(v.interval_seconds)
-    return StepResult("Verify", False, round(time.monotonic() - start, 3), f"not healthy after {v.timeout_seconds:g}s; last probe {last}")
+    return StepResult("Health probes", False, round(time.monotonic() - start, 3), f"not healthy after {v.timeout_seconds:g}s; last probe {last}")

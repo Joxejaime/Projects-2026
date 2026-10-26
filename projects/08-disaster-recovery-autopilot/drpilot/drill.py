@@ -1,18 +1,18 @@
-"""Disaster-recovery drill: break a real service on purpose and check the whole loop end to end.
+"""Disaster-recovery drills: break a real database on purpose and check the whole loop end to end.
 
-    1. start the notes service with a data file, write notes, take a snapshot, write more notes
-    2. start the responder and a probe watcher on /healthz
-    3. corrupt the data file (the disaster)
-    4. the watcher fires, the playbook restores the snapshot and reloads, health probes verify
-    5. the watcher resolves the alert and the responder writes the postmortem draft
+Each drill starts a throwaway PostgreSQL server, the demo orders service and a responder, takes verified
+snapshots, causes a disaster, and lets drpilot detect, recover, verify and write the postmortem.
 
-Scenario "corrupt-data" passes only if recovery was automated and verified, the declared RTO/RPO were
-met, and the notes written before the snapshot came back. Notes written after the snapshot are lost by
-design; the drill counts them, because that loss is the recovery point made visible.
+    dropped-table     someone drops the orders tables. Recovery must restore the newest snapshot, pass the data
+                      checks, meet RTO/RPO, and the draft must say how many writes were lost.
+    poisoned-backup   a backup job without validation snapshotted data that was already wrong (order totals no
+                      longer match their items). Restoring it would "work" and be wrong: recovery must skip it,
+                      fall back to the older good snapshot, and the draft must name the skipped snapshot.
+    corrupt-backups   the only snapshot has rotted. Recovery must refuse to restore it, give up and escalate, the
+                      drill then plays the paged human who rebuilds by hand, and the draft must record the failure.
 
-Scenario "corrupt-backups" also corrupts every snapshot, so the playbook cannot succeed. It passes only
-if the automation gives up and escalates instead of restoring garbage, the drill then plays the human
-who rebuilds the data by hand, and the postmortem records the failed automation with a follow-up.
+Detection here is a 20-line probe loop that posts Alertmanager-shaped alerts to the responder. It stands in for
+Prometheus + Alertmanager (project 04), which do this job in a real deployment; it is not a product feature.
 """
 
 from __future__ import annotations
@@ -24,20 +24,31 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
+import psycopg
+
+from recovery import snapshots
+from recovery.store import LocalStore
+
 from . import playbooks as pb
-from .engine import Responder
-from .model import IncidentStore
-from .render import objective_checks, suggested_actions
-from .watch import Watcher
+from .engine import Responder, synthetic_alert
+from .model import IncidentStore, utcnow
+from .pgcluster import temporary_cluster
+from .render import data_loss_window, objective_checks, suggested_actions
 
 PROJECT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT / "demo"))
-import backup  # noqa: E402
-import notes  # noqa: E402
+import orders  # noqa: E402
+
+SCENARIOS = ("dropped-table", "poisoned-backup", "corrupt-backups")
+ENV_KEYS = ("DATABASE_URL", "BACKUP_STORE", "ORDERS_URL")
+KEPT_ORDERS, LOST_ORDERS = 5, 2
 
 
 @dataclass
@@ -48,77 +59,127 @@ class DrillResult:
     summary: list[str]
 
 
-def _post(url: str, body: dict) -> None:
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST", headers={"Content-Type": "application/json"})  # noqa: S310
-    with urllib.request.urlopen(req, timeout=5):  # noqa: S310  (local drill service)
+class ProbeAlerter:
+    """Fires after N consecutive failed probes (dated from the first failure), resolves after M healthy ones."""
+
+    def __init__(self, url: str, sink: Callable[[dict], object], labels: dict, annotations: dict, interval: float, failures: int = 3, successes: int = 2):
+        self.url, self.sink, self.labels, self.annotations = url, sink, labels, annotations
+        self.interval, self.failures, self.successes = interval, failures, successes
+        self.firing, self.bad, self.good = False, 0, 0
+        self.first_bad: datetime | None = None
+        self.first_good: datetime | None = None
+        self.fired_at: datetime | None = None
+        self.stopped = threading.Event()
+
+    def healthy(self) -> bool:
+        try:
+            with urllib.request.urlopen(self.url, timeout=2) as resp:  # noqa: S310  (local drill service)
+                return resp.status == 200
+        except (urllib.error.URLError, OSError):
+            return False
+
+    def tick(self) -> None:
+        now = utcnow()
+        if self.healthy():
+            self.bad, self.first_bad = 0, None
+            if self.firing:
+                self.good, self.first_good = self.good + 1, self.first_good or now
+                if self.good >= self.successes:
+                    self.sink(synthetic_alert("OrdersDataUnhealthy", "resolved", self.labels, self.annotations, self.fired_at, self.first_good))
+                    self.firing, self.good, self.first_good = False, 0, None
+        else:
+            self.good, self.first_good = 0, None
+            if not self.firing:
+                self.bad, self.first_bad = self.bad + 1, self.first_bad or now
+                if self.bad >= self.failures:
+                    self.fired_at, self.firing, self.bad = self.first_bad, True, 0
+                    self.sink(synthetic_alert("OrdersDataUnhealthy", "firing", self.labels, self.annotations, self.fired_at))
+
+    def run(self) -> None:
+        while not self.stopped.is_set():
+            self.tick()
+            self.stopped.wait(self.interval)
+
+
+def _post_order(base: str, qty: int, price: int = 500, sku: str = "widget") -> None:
+    body = json.dumps({"sku": sku, "qty": qty, "price_cents": price}).encode()
+    req = urllib.request.Request(base + "/orders", data=body, method="POST", headers={"Content-Type": "application/json"})  # noqa: S310
+    with urllib.request.urlopen(req, timeout=5):  # noqa: S310
         pass
 
 
-SCENARIOS = ("corrupt-data", "corrupt-backups")
+def _totals(url: str) -> list[int]:
+    with psycopg.connect(url, connect_timeout=5) as conn:
+        return [row[0] for row in conn.execute("SELECT total_cents FROM orders ORDER BY id")]
 
 
-def run_drill(
-    out_dir: Path, scenario: str = "corrupt-data", kept_notes: int = 5, lost_notes: int = 2, timeout: float = 60.0, interval: float = 0.2
-) -> DrillResult:
+def run_drill(out_dir: Path, scenario: str = "dropped-table", timeout: float = 90.0, interval: float = 0.2) -> DrillResult:
     if scenario not in SCENARIOS:
         raise ValueError(f"scenario must be one of {SCENARIOS}")
     work = Path(tempfile.mkdtemp(prefix="drpilot-drill-"))
-    data, backups = work / "notes.json", work / "backups"
-    token = os.urandom(16).hex()
-    httpd, state = notes.create_server("127.0.0.1", 0, data, token)
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    url = f"http://127.0.0.1:{httpd.server_address[1]}"
-    env_before = {k: os.environ.get(k) for k in ("NOTES_URL", "NOTES_DATA", "NOTES_BACKUPS", "NOTES_ADMIN_TOKEN")}
-    os.environ.update(NOTES_URL=url, NOTES_DATA=str(data), NOTES_BACKUPS=str(backups), NOTES_ADMIN_TOKEN=token)
-    watcher = None
+    env_before = {k: os.environ.get(k) for k in ENV_KEYS}
+    alerter = httpd = None
     try:
-        for i in range(kept_notes):
-            _post(url + "/notes", {"text": f"before snapshot {i}"})
-        snap = backup.snapshot(data, backups)
-        for i in range(lost_notes):
-            _post(url + "/notes", {"text": f"after snapshot {i}"})
+        with temporary_cluster() as cluster:
+            url = cluster.create_database("orders")
+            orders.init_schema(url)
+            httpd = orders.create_server("127.0.0.1", 0, url)
+            threading.Thread(target=httpd.serve_forever, daemon=True).start()
+            base = f"http://127.0.0.1:{httpd.server_address[1]}"
+            store = LocalStore(work / "backups")
+            os.environ.update(DATABASE_URL=url, BACKUP_STORE=str(store), ORDERS_URL=base)
 
-        responder = Responder(IncidentStore(work / "incidents"), pb.load_dir(PROJECT / "playbooks"), out_dir)
-        incidents: list[str] = []
-        watcher = Watcher(
-            url + "/healthz",
-            "NotesUnhealthy",
-            lambda payload: incidents.extend(responder.handle_payload(payload)),
-            labels={"service": "notes", "severity": "page"},
-            annotations={
-                "summary": f"Notes service data file corrupted (drill: {scenario})",
-                "description": "Disaster-recovery drill: the data file was deliberately overwritten with garbage.",
-                "runbook_url": "docs/runbooks/notes-unhealthy.md",
-            },
-            failures=3,
-            successes=2,
-            interval=interval,
-        )
-        watcher.start()
-        time.sleep(interval * 3)  # healthy baseline first
-        if scenario == "corrupt-backups":
-            snap.write_text("bit rot")  # the backups went bad too, and nobody noticed
-        data.write_text("this is not json: the disaster")  # the disaster
-        deadline = time.monotonic() + timeout
-        while not incidents and time.monotonic() < deadline:
-            time.sleep(interval)
-        if not incidents:
-            raise RuntimeError("the watcher never fired; detection is broken")
-        if scenario == "corrupt-backups":
-            while responder.store.get(incidents[0]).recovery_state == "running" and time.monotonic() < deadline:
+            for qty in range(1, KEPT_ORDERS + 1):
+                _post_order(base, qty)
+            good_totals = _totals(url)
+            snapshots.take(url, store, log=lambda _m: None)
+            if scenario == "poisoned-backup":
+                time.sleep(1.1)  # snapshot names have one-second resolution
+                with psycopg.connect(url, autocommit=True) as conn:  # the silent bug: totals drift away from their items
+                    conn.execute("UPDATE orders SET total_cents = total_cents + 500 WHERE id <= 2")
+                snapshots.take(url, store, verify=False, log=lambda _m: None)
+            if scenario == "corrupt-backups":
+                for dump in (work / "backups").glob("*.dump"):
+                    dump.write_bytes(b"bit rot")
+            for qty in range(LOST_ORDERS):
+                _post_order(base, qty + 1, sku="after-snapshot")
+
+            responder = Responder(IncidentStore(work / "incidents"), pb.load_dir(PROJECT / "playbooks"), out_dir)
+            incidents: list[str] = []
+            alerter = ProbeAlerter(
+                base + "/healthz",
+                lambda payload: incidents.extend(responder.handle_payload(payload)),
+                labels={"service": "orders", "severity": "page", "autoremediate": "true", "environment": "drill"},
+                annotations={
+                    "summary": f"Orders data unhealthy (drill: {scenario})",
+                    "description": "Disaster-recovery drill: the orders tables were deliberately destroyed.",
+                    "runbook": "docs/runbooks/orders-data-unhealthy.md",
+                },
+                interval=interval,
+            )
+            threading.Thread(target=alerter.run, daemon=True).start()
+            time.sleep(interval * 3)  # healthy baseline first
+            with psycopg.connect(url, autocommit=True) as conn:  # the disaster
+                conn.execute("DROP TABLE order_items, orders")
+
+            deadline = time.monotonic() + timeout
+            while not incidents and time.monotonic() < deadline:
                 time.sleep(interval)
-            # The paged human rebuilds what they can and reloads; the alert then resolves on its own.
-            notes.write_store(data, ["rebuilt by hand"])
-            req = urllib.request.Request(url + "/admin/reload", method="POST", headers={"Authorization": f"Bearer {token}"})  # noqa: S310
-            urllib.request.urlopen(req, timeout=5).close()  # noqa: S310
-        incident = responder.wait_closed(incidents[0], timeout=max(1.0, deadline - time.monotonic()))
-        with state.lock:
-            restored = list(state.notes)
+            if not incidents:
+                raise RuntimeError("the probe never fired; detection is broken")
+            if scenario == "corrupt-backups":
+                while responder.store.get(incidents[0]).recovery_state == "running" and time.monotonic() < deadline:
+                    time.sleep(interval)
+                orders.init_schema(url)  # the paged human rebuilds what they can
+                _post_order(base, 1, sku="rebuilt-by-hand")
+            incident = responder.wait_closed(incidents[0], timeout=max(1.0, deadline - time.monotonic()))
+            restored = _totals(url)
     finally:
-        if watcher:
-            watcher.stop()
-        httpd.shutdown()
-        httpd.server_close()
+        if alerter:
+            alerter.stopped.set()
+        if httpd:
+            httpd.shutdown()
+            httpd.server_close()
         for key, value in env_before.items():
             if value is None:
                 os.environ.pop(key, None)
@@ -127,18 +188,24 @@ def run_drill(
         shutil.rmtree(work, ignore_errors=True)
 
     checks = objective_checks(incident)
-    if scenario == "corrupt-data":
-        expected = [f"before snapshot {i}" for i in range(kept_notes)]
-        passed = incident.finalized and incident.recovery_state == "succeeded" and restored == expected and all(c[3] == "met" for c in checks)
-        data_line = f"data: {len(restored)} notes restored, {lost_notes} written after the snapshot were lost (expected: RPO > 0)"
+    lost = data_loss_window(incident)
+    skipped = int(incident.facts.get("snapshots_skipped", 0) or 0)
+    if scenario == "dropped-table":
+        passed = incident.recovery_state == "succeeded" and restored == good_totals and skipped == 0 and all(c[3] == "met" for c in checks)
+        data_line = f"data: {len(restored)} orders restored and intact; {LOST_ORDERS} written after the snapshot were lost (expected: RPO > 0)"
+    elif scenario == "poisoned-backup":
+        passed = incident.recovery_state == "succeeded" and restored == good_totals and skipped == 1 and all(c[3] == "met" for c in checks)
+        data_line = f"data: newest snapshot skipped (order totals did not match items), older one restored: {len(restored)} orders, totals intact"
     else:
         followup = any(a.startswith(f"Automation '{incident.playbook}' failed") for a, _ in suggested_actions(incident))
-        passed = incident.finalized and incident.recovery_state == "failed" and restored == ["rebuilt by hand"] and followup
-        data_line = f"data: automation refused to restore a corrupt snapshot and escalated; {kept_notes + lost_notes} notes lost, rebuilt by hand"
+        passed = incident.recovery_state == "failed" and restored == [500] and followup
+        data_line = f"data: automation refused to restore a rotted snapshot and escalated; {KEPT_ORDERS + LOST_ORDERS} orders lost, rebuilt by hand"
+    passed = passed and incident.finalized
     summary = [
         f"scenario {scenario}: incident {incident.id}, recovery {incident.recovery_state}, postmortem {incident.postmortem_path}",
         data_line,
         *(f"{name}: target {target}, observed {observed} -> {verdict}" for name, target, observed, verdict in checks),
+        *([f"data loss window: {lost:.1f}s of writes"] if lost is not None else []),
         "DRILL PASSED" if passed else "DRILL FAILED",
     ]
     return DrillResult(passed, incident.id, Path(incident.postmortem_path or ""), summary)

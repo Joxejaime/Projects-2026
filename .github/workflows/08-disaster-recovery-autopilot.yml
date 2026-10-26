@@ -28,22 +28,29 @@ jobs:
   verify:
     name: Lint, playbooks, tests and drills
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install -r requirements.txt ruff
+      - name: Make sure PostgreSQL server binaries are present
+        # ubuntu-latest ships PostgreSQL (stopped); the tests start their own throwaway server from the binaries.
+        working-directory: .
+        run: |
+          if ! ls /usr/lib/postgresql/*/bin/initdb >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq postgresql
+          fi
+          ls /usr/lib/postgresql/*/bin/initdb
+      - run: pip install -r requirements-dev.txt
       - name: Lint
         run: ruff check . && ruff format --check .
       - name: Playbooks are valid
         run: python -m drpilot check
-      - name: Tests (unit, HTTP integration, both drills)
-        run: python -m unittest discover -s tests -t . -v
-      - name: Drill - corrupted data file is restored and verified
-        run: python -m drpilot drill --out "$RUNNER_TEMP/postmortems"
-      - name: Drill - corrupted backups are refused and escalated
-        run: python -m drpilot drill --scenario corrupt-backups --out "$RUNNER_TEMP/postmortems"
+      - name: Tests (unit, real-PostgreSQL integration, all three drills)
+        run: python -m pytest -v
+      - name: Drills, with their postmortem drafts kept
+        run: python -m drpilot drill --scenario all --out "$RUNNER_TEMP/postmortems"
       - name: Replay a sample Alertmanager incident
         run: python -m drpilot replay examples/replica-lag-firing.json examples/replica-lag-resolved.json --state "$RUNNER_TEMP/state" --postmortems "$RUNNER_TEMP/postmortems"
       - name: Upload the postmortem drafts this run generated
@@ -54,11 +61,37 @@ jobs:
           path: ${{ runner.temp }}/postmortems
           if-no-files-found: warn
 
+  terraform:
+    name: Backup bucket module (fmt, validate, TFLint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.0
+          terraform_wrapper: false
+      - name: Format check
+        run: terraform fmt -check -diff
+        working-directory: projects/08-disaster-recovery-autopilot/infra/backup-bucket
+      - name: Init (no backend) and validate
+        working-directory: projects/08-disaster-recovery-autopilot/infra/backup-bucket
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+      - uses: terraform-linters/setup-tflint@v4
+      - name: TFLint
+        working-directory: projects/08-disaster-recovery-autopilot/infra/backup-bucket
+        run: |
+          tflint --init
+          tflint --minimum-failure-severity=warning
+
   prometheus-rules:
     # promtool is downloaded onto the runner rather than running the job inside prom/prometheus:
     # that image has no Node.js, so actions/checkout cannot run in it.
     name: Prometheus rule checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       PROM_VERSION: "2.55.1"
     steps:

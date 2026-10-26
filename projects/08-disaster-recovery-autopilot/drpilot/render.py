@@ -57,11 +57,28 @@ def objective_checks(incident: Incident) -> list[tuple[str, str, str, str]]:
         met = observed is not None and observed <= obj["rto_seconds"]
         rows.append(("RTO (impact start to service restored)", duration(obj["rto_seconds"]), duration(observed), "met" if met else "MISSED"))
     if "rpo_seconds" in obj:
-        age = incident.facts.get("snapshot_age_seconds")
-        met = age is not None and float(age) <= obj["rpo_seconds"]
-        observed = duration(float(age)) if age is not None else "unknown (no restore reported it)"
-        rows.append(("RPO (age of the data restored)", duration(obj["rpo_seconds"]), observed, "met" if met else "MISSED"))
+        lost = data_loss_window(incident)
+        met = lost is not None and lost <= obj["rpo_seconds"]
+        observed = duration(lost) if lost is not None else "unknown (no restore reported it)"
+        rows.append(("RPO (last good snapshot to impact start)", duration(obj["rpo_seconds"]), observed, "met" if met else "MISSED"))
     return rows
+
+
+def data_loss_window(incident: Incident) -> float | None:
+    """Seconds of writes that could not be recovered: from the restored snapshot to the start of the impact.
+
+    Uses the snapshot's own timestamp when the restore reported it. A restore that only reported the
+    snapshot's age is measured at restore time, which also counts the recovery itself, so it is the fallback.
+    """
+    created, impact = parse_time(incident.facts.get("snapshot_created_at")), parse_time(incident.impact_started_at)
+    if created and impact:
+        return max(0.0, (impact - created).total_seconds())
+    age = incident.facts.get("snapshot_age_seconds")
+    return float(age) if age is not None else None
+
+
+def runbook(incident: Incident) -> str | None:
+    return incident.annotations.get("runbook_url") or incident.annotations.get("runbook")
 
 
 def suggested_actions(incident: Incident) -> list[tuple[str, str]]:
@@ -82,14 +99,18 @@ def suggested_actions(incident: Incident) -> list[tuple[str, str]]:
         if verdict == "MISSED":
             if name.startswith("RPO"):
                 fix = (
-                    "no verified restore happened, so test that backups restore on a schedule"
+                    "no verified restore happened, so run `recover.py restore-test` on a schedule and alert when it fails"
                     if observed.startswith("unknown")
                     else "take snapshots more often"
                 )
             else:
                 fix = "shorten the restore path"
             actions.append((f"{name.split(' ')[0]} missed ({observed} vs {target}): {fix}", "prevent" if name.startswith("RPO") else "mitigate"))
-    if not incident.annotations.get("runbook_url"):
+    skipped = int(incident.facts.get("snapshots_skipped", 0) or 0)
+    if skipped:
+        why = f" ({incident.facts['skipped_reasons']})" if incident.facts.get("skipped_reasons") else ""
+        actions.append((f"{skipped} newer snapshot(s) failed verification during recovery{why}: find out how they came to be taken in that state", "prevent"))
+    if not runbook(incident):
         actions.append(("Link a runbook from the alert's `runbook_url` annotation", "mitigate"))
     actions.append(("Find and fix what caused the failure in the first place", "prevent"))
     return actions
@@ -169,8 +190,8 @@ def render_postmortem(incident: Incident, generated_at: datetime) -> str:
         out += [""]
     out += ["## Alert details", "", "| Label | Value |", "|---|---|"]
     out += [f"| `{cell(k)}` | {cell(v)} |" for k, v in sorted(incident.labels.items())]
-    if incident.annotations.get("runbook_url"):
-        out += ["", f"Runbook: {incident.annotations['runbook_url']}"]
+    if runbook(incident):
+        out += ["", f"Runbook: {runbook(incident)}"]
     out += [
         "",
         "## Root cause and contributing factors",

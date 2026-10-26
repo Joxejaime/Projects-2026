@@ -1,0 +1,23 @@
+# Merge into project 04's alertmanager/alertmanager.yml, do not replace it:
+#   1. add the route as the FIRST entry under `route.routes` (continue: true keeps the existing pager/ticket routes
+#      working, so humans are still paged while drpilot tries to recover)
+#   2. add the receiver under `receivers`
+# send_resolved is required: the resolved notification is what closes the incident and writes the postmortem.
+# tests/test_config.py merges this into 04's real file and checks the result.
+route:
+  routes:
+    - matchers: ['autoremediate = "true"']
+      receiver: drpilot
+      group_wait: 5s
+      group_interval: 30s
+      continue: true
+
+receivers:
+  - name: drpilot
+    webhook_configs:
+      - url: http://drpilot:9095/alerts
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/secrets/drpilot-token

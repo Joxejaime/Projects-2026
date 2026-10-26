@@ -1,0 +1,45 @@
+# Infrastructure recovery by re-applying project 02's Terraform for the DEV environment when 04's TargetDown
+# alert fires for release-tracker. Reuses 02's code and remote state; nothing is rebuilt here.
+#
+# NOT RUN against AWS. It is validated by `drpilot check` and exercised in tests with a stub `terraform`
+# binary (argument order and env handling only). Treat the first real run as the test.
+#
+# Prod is deliberately not matched (it needs `environment: dev`): automation does not apply infrastructure to
+# production. A prod TargetDown has no playbook and is escalated to a human.
+#
+# Environment: TF_STATE_BUCKET, AWS_REGION, TF_VAR_image (and AWS credentials via the normal chain),
+# SERVICE_URL (the ALB URL: `terraform output -raw url` in envs/dev).
+name: infra-reapply-dev
+match:
+  alertname: TargetDown
+  service: release-tracker
+  environment: dev
+max_attempts: 1
+objectives:
+  rto_seconds: 1200
+steps:
+  - name: terraform init (remote state)
+    run:
+      - terraform
+      - "-chdir={playbook_dir}/../../02-aws-terraform-platform/envs/dev"
+      - init
+      - -input=false
+      - "-backend-config=bucket={env.TF_STATE_BUCKET}"
+      - "-backend-config=key=release-tracker/dev/terraform.tfstate"
+      - "-backend-config=region={env.AWS_REGION}"
+      - "-backend-config=use_lockfile=true"
+    timeout: 300
+  - name: terraform apply
+    run:
+      - terraform
+      - "-chdir={playbook_dir}/../../02-aws-terraform-platform/envs/dev"
+      - apply
+      - -input=false
+      - -auto-approve
+      - -lock-timeout=5m
+    timeout: 1500
+verify:
+  url: "{env.SERVICE_URL}/healthz"
+  successes: 3
+  interval_seconds: 5
+  timeout_seconds: 300
