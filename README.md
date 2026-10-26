@@ -32,7 +32,7 @@ They are meant to be read together: 02 to 04 use the image or the `/metrics` end
 | # | Project | What it shows | Core tools |
 |---|---|---|---|
 | 01 | [Secure CI/CD pipeline](projects/01-secure-cicd-pipeline) | A pipeline that refuses to ship a vulnerable image: lint, test, build, scan, SBOM, publish by digest, keyless signature and provenance | GitHub Actions, Docker, Trivy, gitleaks, cosign, GHCR |
-| 02 | [AWS platform with OpenTofu](projects/02-aws-terraform-platform) | Multi-AZ VPC and ECS Fargate behind an ALB, dev and prod, plan on PR and gated apply with no stored cloud keys | OpenTofu, ECS, ALB, IAM OIDC, TFLint, Checkov |
+| 02 | [AWS platform with Terraform](projects/02-aws-terraform-platform) | Multi-AZ VPC and ECS Fargate behind an ALB, dev and prod, plan on PR and gated apply with no stored cloud keys | Terraform, ECS, ALB, IAM OIDC, TFLint, Checkov |
 | 03 | [Kubernetes GitOps](projects/03-k8s-gitops) | Promotion by pull request, Pod Security `restricted`, default-deny networking, and a tested policy checker | Kustomize, Argo CD, kubeconform, policy-as-code |
 | 04 | [Observability and SLOs](projects/04-observability-slo) | Multi-window burn-rate alerting with unit-tested rules, routing, dashboards as code, runbooks and a game day | Prometheus, Alertmanager, Grafana, promtool |
 
@@ -58,7 +58,7 @@ Being precise about this is deliberate: nothing below is claimed unless it has b
 | Project | Checks that have run | Where |
 |---|---|---|
 | 01 | Lint, 15 unit tests, hadolint, gitleaks, image build, container smoke test, Trivy gate, SBOM, GHCR publish by digest, cosign keyless signature, provenance attestation | GitHub Actions |
-| 02 | `tofu fmt`, module wiring check, `init` + `validate` for bootstrap/dev/prod, TFLint, Checkov (21 findings triaged) | GitHub Actions |
+| 02 | `fmt`, module wiring check, `init` + `validate` for bootstrap/dev/prod, TFLint, Checkov (21 findings triaged) | GitHub Actions |
 | 03 | `kustomize build`, strict kubeconform validation, policy checks on both overlays, 13 policy tests | GitHub Actions |
 | 04 | Generated-file drift check, promtool config and rule checks, 8 alert-rule scenarios, amtool, compose validation; one real end-to-end alert run | GitHub Actions, local |
 | 05 | 40 unit and end-to-end tests, image build and scan, Terraform checks; provider-outage drill | GitHub Actions, local |
@@ -80,7 +80,7 @@ projects-2026/
 ├── projects/
 │   ├── 00-start-here/                  guide to all eight, end-to-end diagram, evidence
 │   ├── 01-secure-cicd-pipeline/        release-tracker service, Dockerfile, CI/CD with scan, SBOM, signing
-│   ├── 02-aws-terraform-platform/      OpenTofu modules (network, ECS service), dev/prod, OIDC bootstrap
+│   ├── 02-aws-terraform-platform/      Terraform modules (network, ECS service), dev/prod, OIDC bootstrap
 │   ├── 03-k8s-gitops/                  Kustomize overlays, Argo CD apps, policy checker
 │   ├── 04-observability-slo/           burn-rate rules, Alertmanager, Grafana, runbooks, game day
 │   ├── 05-ai-reliability-platform/     gateway app, tests, k8s, terraform, observability, drill report

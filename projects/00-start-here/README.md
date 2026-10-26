@@ -27,7 +27,7 @@ provision the platform, deploy it with GitOps, then observe it against SLOs.
 | # | Project | Skills shown |
 |---|---|---|
 | 01 | [Secure CI/CD pipeline](../01-secure-cicd-pipeline) | GitHub Actions, Docker hardening, Trivy, SBOM, cosign, provenance |
-| 02 | [AWS platform with OpenTofu](../02-aws-terraform-platform) | IaC modules, VPC, ECS Fargate, ALB, autoscaling, OIDC, remote state |
+| 02 | [AWS platform with Terraform](../02-aws-terraform-platform) | IaC modules, VPC, ECS Fargate, ALB, autoscaling, OIDC, remote state |
 | 03 | [Kubernetes and GitOps](../03-k8s-gitops) | Kustomize, Argo CD, Pod Security, NetworkPolicy, HPA/PDB, policy-as-code |
 | 04 | [Observability and SLOs](../04-observability-slo) | Prometheus, Alertmanager, Grafana, burn-rate alerts, runbooks, game day |
 
@@ -54,7 +54,7 @@ Each project README ends with a **Verification status** table separating what wa
 
 The CI workflows for 01 to 07 run on GitHub and pass; 08 was verified locally and its workflow has not run yet. Between them they cover lint and tests for every project, the
 image build with a Trivy gate and an SBOM, GHCR publish with a keyless cosign signature and provenance,
-`tofu validate` with TFLint and Checkov, kubeconform and policy checks on rendered manifests, and promtool
+`terraform validate` with TFLint and Checkov, kubeconform and policy checks on rendered manifests, and promtool
 rule unit tests. Two results were produced by running things locally rather than in CI: the end-to-end alert
 run in project 04 and the provider-outage drill in project 05, both recorded in their evidence files.
 

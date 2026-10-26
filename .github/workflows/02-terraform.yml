@@ -40,11 +40,12 @@ jobs:
         dir: [bootstrap, envs/dev, envs/prod]
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v1
+      - uses: hashicorp/setup-terraform@v3
         with:
-          tofu_version: 1.10.6
+          terraform_version: 1.13.0
+          terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
       - name: Format check
-        run: tofu fmt -recursive -check -diff
+        run: terraform fmt -recursive -check -diff
         working-directory: ${{ env.TF_DIR }}
       - name: Module wiring check
         run: python3 -I scripts/check_wiring.py
@@ -52,8 +53,8 @@ jobs:
       - name: Init (no backend) and validate
         working-directory: ${{ env.TF_DIR }}/${{ matrix.dir }}
         run: |
-          tofu init -backend=false -input=false
-          tofu validate
+          terraform init -backend=false -input=false
+          terraform validate
 
   security:
     name: IaC security scan
@@ -118,9 +119,10 @@ jobs:
         env: [dev, prod]
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v1
+      - uses: hashicorp/setup-terraform@v3
         with:
-          tofu_version: 1.10.6
+          terraform_version: 1.13.0
+          terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
@@ -128,14 +130,14 @@ jobs:
       - name: Init with remote state
         working-directory: ${{ env.TF_DIR }}/envs/${{ matrix.env }}
         run: |
-          tofu init -input=false \
+          terraform init -input=false \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="key=release-tracker/${{ matrix.env }}/terraform.tfstate" \
             -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
             -backend-config="use_lockfile=true"
       - name: Plan
         working-directory: ${{ env.TF_DIR }}/envs/${{ matrix.env }}
-        run: tofu plan -input=false -lock-timeout=5m -no-color -out=tfplan | tee plan.txt
+        run: terraform plan -input=false -lock-timeout=5m -no-color -out=tfplan | tee plan.txt
         env:
           TF_VAR_image: ${{ vars.TF_VAR_IMAGE }}
           TF_VAR_certificate_arn: ${{ vars.TF_VAR_CERTIFICATE_ARN }}
@@ -163,9 +165,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v1
+      - uses: hashicorp/setup-terraform@v3
         with:
-          tofu_version: 1.10.6
+          terraform_version: 1.13.0
+          terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
@@ -173,14 +176,14 @@ jobs:
       - name: Init with remote state
         working-directory: ${{ env.TF_DIR }}/envs/${{ inputs.apply_env }}
         run: |
-          tofu init -input=false \
+          terraform init -input=false \
             -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
             -backend-config="key=release-tracker/${{ inputs.apply_env }}/terraform.tfstate" \
             -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
             -backend-config="use_lockfile=true"
       - name: Apply
         working-directory: ${{ env.TF_DIR }}/envs/${{ inputs.apply_env }}
-        run: tofu apply -input=false -auto-approve -lock-timeout=5m
+        run: terraform apply -input=false -auto-approve -lock-timeout=5m
         env:
           TF_VAR_image: ${{ vars.TF_VAR_IMAGE }}
           TF_VAR_certificate_arn: ${{ vars.TF_VAR_CERTIFICATE_ARN }}

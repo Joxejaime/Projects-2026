@@ -28,7 +28,7 @@ run "unit tests (01 app)" in_dir $P/01-secure-cicd-pipeline/app python3 -m unitt
 if need hadolint "hadolint Dockerfile"; then run "hadolint Dockerfile" hadolint $P/01-secure-cicd-pipeline/Dockerfile; fi
 
 echo "== 02 Terraform"
-if need tofu "tofu fmt"; then run "tofu fmt -check" in_dir $P/02-aws-terraform-platform tofu fmt -recursive -check; fi
+if need terraform "terraform fmt"; then run "terraform fmt -check" in_dir $P/02-aws-terraform-platform terraform fmt -recursive -check; fi
 run "module wiring check" python3 -I $P/02-aws-terraform-platform/scripts/check_wiring.py
 if need ruff "ruff lint (02 scripts)"; then run "ruff lint (02 scripts)" in_dir $P/02-aws-terraform-platform ruff check .; fi
 

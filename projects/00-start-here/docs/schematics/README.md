@@ -5,14 +5,14 @@ Diagrams are Mermaid, so GitHub renders them inline below. Each also has a rende
 
 ## Four projects, one service
 
-projects/01 to 04. The pipeline in project 01 publishes a signed image. Project 02 runs it on AWS with OpenTofu and project 03 on Kubernetes with Argo CD. Both expose /metrics, which project 04 turns into SLO burn-rate alerts that page the on-call engineer, who rolls back or fixes forward.
+projects/01 to 04. The pipeline in project 01 publishes a signed image. Project 02 runs it on AWS with Terraform and project 03 on Kubernetes with Argo CD. Both expose /metrics, which project 04 turns into SLO burn-rate alerts that page the on-call engineer, who rolls back or fixes forward.
 
 ```mermaid
 %% title: Four projects, one service
 %% headline: From commit to on-call in four connected projects
 %% takeaway: One signed image is built once, deployed two ways, and watched against SLOs.
 %% legend: entry=People,guard=Pipelines,data=Artifact,app=Kubernetes delivery,cloud=AWS,obs=Observability,alert=Alerting
-%% caption: projects/01 to 04. The pipeline in project 01 publishes a signed image. Project 02 runs it on AWS with OpenTofu and project 03 on Kubernetes with Argo CD. Both expose /metrics, which project 04 turns into SLO burn-rate alerts that page the on-call engineer, who rolls back or fixes forward.
+%% caption: projects/01 to 04. The pipeline in project 01 publishes a signed image. Project 02 runs it on AWS with Terraform and project 03 on Kubernetes with Argo CD. Both expose /metrics, which project 04 turns into SLO burn-rate alerts that page the on-call engineer, who rolls back or fixes forward.
 flowchart TB
   dev(["Developer<br/>git push / pull request"])
 
@@ -24,7 +24,7 @@ flowchart TB
 
   dev --> ci
 
-  subgraph P2["02 AWS with OpenTofu"]
+  subgraph P2["02 AWS with Terraform"]
     tf["plan on pull request<br/>apply via protected environment"]
     aws["VPC, ALB, ECS Fargate<br/>autoscaling, alarms"]
     tf --> aws

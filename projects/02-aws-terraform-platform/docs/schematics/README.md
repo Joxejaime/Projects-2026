@@ -76,18 +76,18 @@ sequenceDiagram
   participant AWS as AWS account
 
   Dev->>GH: Open pull request
-  GH->>GH: static job: tofu fmt, wiring check, init -backend=false, validate
+  GH->>GH: static job: terraform fmt, wiring check, init -backend=false, validate
   GH->>GH: security job: TFLint and Checkov, SARIF upload
   GH->>STS: AssumeRoleWithWebIdentity as plan role<br/>token subject repo:owner/repo:*
   STS-->>GH: Short-lived read-only credentials
   GH->>S3: Init remote state, lock with use_lockfile
-  GH->>AWS: tofu plan (read-only calls)
+  GH->>AWS: terraform plan (read-only calls)
   GH-->>Dev: Plan summary in the job summary
   Dev->>GH: Merge, then run workflow with apply_env = dev or prod
   Note over GH: Job targets a GitHub Environment,<br/>required reviewers must approve
   GH->>STS: AssumeRoleWithWebIdentity as apply role<br/>token subject repo:owner/repo:environment:*
   STS-->>GH: Short-lived credentials, no stored keys
-  GH->>AWS: tofu apply (locked state in S3)
+  GH->>AWS: terraform apply (locked state in S3)
   GH->>S3: Write new state version
 ```
 

@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.10.0"
+  required_version = ">= 1.11.0"
 
   required_providers {
     aws = {
@@ -9,7 +9,7 @@ terraform {
   }
 
   # Partial configuration: supply bucket/key/region with
-  #   tofu init -backend-config=backend.hcl   (see backend.hcl.example)
+  #   terraform init -backend-config=backend.hcl   (see backend.hcl.example)
   # use_lockfile gives native S3 state locking: no DynamoDB table needed.
   backend "s3" {}
 }
