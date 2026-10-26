@@ -112,7 +112,7 @@ jobs:
             exit 1
           fi
           trivy --list-all-pkgs --format json --output /out/trivy.json 2>/dev/null
-          where=$(jq -r '[.Results[]? | select(.Class=="lang-pkgs") | .Packages[]? | select(.Name=="urllib3" or .Name=="setuptools" or .Name=="msgpack") | "\(.Name)@\(.FilePath // "?")"] | unique | join(" ; ")' trivy.json)
+          where=$(jq -r '[.runs[].results[] | "\(.ruleId) \(.locations[0].physicalLocation.artifactLocation.uri)"] | unique | join(" ; ")' trivy.sarif)
           echo "::warning title=Flagged package files::$where"
           hist=$(docker history --no-trunc --format '{{.CreatedBy}}' release-tracker:ci | cut -c1-90 | head -n 8 | tr '\n' '|')
           echo "::warning title=Image history::$hist"
