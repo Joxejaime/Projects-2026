@@ -114,7 +114,7 @@ jobs:
           trivy --format json --output /out/trivy.json 2>/dev/null
           count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy.json)
           echo "HIGH/CRITICAL fixable vulnerabilities: $count"
-          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | "\(.Severity) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) [\($t)]"' trivy.json \
+          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | "\(.Severity) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) [\(.PkgPath // $t)]"' trivy.json \
             | head -n 10 | while read -r line; do echo "::error title=Trivy finding::$line"; done
           [ "$count" -eq 0 ]
       - name: Upload scan results
