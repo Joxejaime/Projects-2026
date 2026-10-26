@@ -97,14 +97,26 @@ jobs:
       - name: Vulnerability scan (fail on HIGH/CRITICAL)
         # Run Trivy from its pinned container image instead of a third-party action:
         # one less action in the supply chain, and the scanner version is explicit.
+        # Findings are surfaced as annotations so a failure explains itself on the run page.
         run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD:/out" \
-            aquasec/trivy:0.57.1 image \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
-            --format sarif --output /out/trivy.sarif \
-            release-tracker:ci
+          trivy() {
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$PWD:/out" \
+              aquasec/trivy:0.57.1 image \
+              --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 \
+              "$@" release-tracker:ci
+          }
+          if ! trivy --format sarif --output /out/trivy.sarif 2> trivy.err; then
+            echo "::error title=Trivy scanner error::$(tail -n 5 trivy.err | tr '\n' ' ')"
+            exit 1
+          fi
+          trivy --format json --output /out/trivy.json 2>/dev/null
+          count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy.json)
+          echo "HIGH/CRITICAL fixable vulnerabilities: $count"
+          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | "\(.Severity) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) [\($t)]"' trivy.json \
+            | head -n 10 | while read -r line; do echo "::error title=Trivy finding::$line"; done
+          [ "$count" -eq 0 ]
       - name: Upload scan results
         if: always()
         uses: github/codeql-action/upload-sarif@v3
