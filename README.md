@@ -4,8 +4,7 @@
 failure, and recovering with evidence.** Built as eight self-contained components, each with its own tests,
 docs, diagrams and CI pipeline — all eight run on GitHub Actions and pass.
 
-[![CI](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions)
-&nbsp;Terraform · Kubernetes · GitHub Actions · AWS · Prometheus · Python
+`Terraform` `Kubernetes` `AWS` `GitHub Actions` `Docker` `Prometheus` `Argo CD` `Python`
 
 ---
 
@@ -61,6 +60,17 @@ Nothing here is claimed unless it has been run. Each component README ends with 
 | [06](projects/06-self-service-platform) Developer platform | 29 tests, scaffold → validate → generated-tests round trip, Terraform checks | GitHub Actions |
 | [07](projects/07-sre-reliability-lab) SRE lab | Lint, SLO validation, 33 tests including live chaos experiments, promtool rule checks | GitHub Actions |
 | [08](projects/08-disaster-recovery-autopilot) DR autopilot | Lint, playbook validation, 85 pytest tests against a real PostgreSQL 16 server, three recovery drills with their postmortem drafts committed | GitHub Actions, local |
+
+Live status of all eight pipelines:
+
+[![01](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/01-secure-cicd.yml)
+[![02](https://github.com/Joxejaime/Projects-2026/actions/workflows/02-terraform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/02-terraform.yml)
+[![03](https://github.com/Joxejaime/Projects-2026/actions/workflows/03-k8s-gitops.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/03-k8s-gitops.yml)
+[![04](https://github.com/Joxejaime/Projects-2026/actions/workflows/04-observability.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/04-observability.yml)
+[![05](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml)
+[![06](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml)
+[![07](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml)
+[![08](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml)
 
 **Not proven anywhere yet:** applying any Terraform to a real AWS account, an Argo CD sync on a real cluster,
 Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` against the published image.
