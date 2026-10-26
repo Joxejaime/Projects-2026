@@ -1,0 +1,30 @@
+# Route pages to drpilot as well as to people. drpilot attempts recovery, but a human is still
+# paged: automation that fails silently is worse than none. send_resolved is required, because the
+# resolved notification is what closes the incident and triggers the postmortem draft.
+route:
+  receiver: humans
+  group_by: [alertname, service]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity="page"']
+      receiver: drpilot
+      continue: true          # keep going so the human route below also fires
+    - matchers: ['severity="page"']
+      receiver: humans
+
+receivers:
+  - name: drpilot
+    webhook_configs:
+      - url: http://drpilot:9095/alerts
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/secrets/drpilot-token
+  - name: humans
+    # Replace with your paging integration (PagerDuty, Opsgenie, Slack...).
+    webhook_configs:
+      - url: http://pager.invalid/hook
+        send_resolved: true

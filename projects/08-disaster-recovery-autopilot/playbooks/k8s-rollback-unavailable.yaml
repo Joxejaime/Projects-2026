@@ -1,0 +1,18 @@
+# Example for a Kubernetes service: if a rollout leaves replicas unavailable (typically crash-looping), roll the Deployment back to the
+# previous ReplicaSet and wait for it to become available. Not exercised by the drill (it needs a
+# cluster and kubectl); it is here to show the playbook shape for a second kind of failure.
+# The deployment and namespace come from alert labels, which drpilot only substitutes when they are
+# plain names (see SAFE_LABEL in drpilot/playbooks.py).
+name: k8s-rollback-unavailable
+match:
+  alertname: KubeDeploymentUnavailable
+max_attempts: 1
+objectives:
+  rto_seconds: 600
+steps:
+  - name: Roll back to the previous ReplicaSet
+    run: ["kubectl", "--namespace", "{label.namespace}", "rollout", "undo", "deployment/{label.deployment}"]
+    timeout: 30
+  - name: Wait for the rollback to become available
+    run: ["kubectl", "--namespace", "{label.namespace}", "rollout", "status", "deployment/{label.deployment}", "--timeout=300s"]
+    timeout: 320

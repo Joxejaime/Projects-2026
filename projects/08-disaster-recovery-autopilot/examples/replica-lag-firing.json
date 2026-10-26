@@ -1,0 +1,24 @@
+{
+  "version": "4",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "ReplicaLagHigh",
+        "service": "billing",
+        "severity": "page",
+        "instance": "billing-0"
+      },
+      "annotations": {
+        "summary": "Billing database replica lag over 5 minutes",
+        "description": "Replica lag has exceeded 300 s; reads may be stale."
+      },
+      "startsAt": "2026-10-19T09:12:04.000Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "fingerprint": "c1a2b3d4e5f60718"
+    }
+  ],
+  "receiver": "drpilot",
+  "groupKey": "{}:{alertname=\"ReplicaLagHigh\"}"
+}

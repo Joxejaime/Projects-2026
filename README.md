@@ -7,9 +7,10 @@
 [![05 AI reliability](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/05-ai-reliability-platform.yml)
 [![06 Self-service platform](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/06-self-service-platform.yml)
 [![07 SRE lab](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/07-sre-reliability-lab.yml)
+[![08 DR autopilot](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml/badge.svg?branch=main)](https://github.com/Joxejaime/Projects-2026/actions/workflows/08-disaster-recovery-autopilot.yml)
 
-**Seven projects covering the path from a commit to a service running in production and being kept alive:
-secure delivery, infrastructure as code, GitOps, observability, and incident practice.**
+**Eight projects covering the path from a commit to a service running in production and being kept alive:
+secure delivery, infrastructure as code, GitOps, observability, incident practice, and disaster recovery.**
 
 Every project is self-contained — its own tests, docs, runbooks, diagrams and CI workflow — and every README
 ends with a **Verification status** table that separates what was actually run from what was not.
@@ -35,15 +36,16 @@ They are meant to be read together: 02 to 04 use the image or the `/metrics` end
 | 03 | [Kubernetes GitOps](projects/03-k8s-gitops) | Promotion by pull request, Pod Security `restricted`, default-deny networking, and a tested policy checker | Kustomize, Argo CD, kubeconform, policy-as-code |
 | 04 | [Observability and SLOs](projects/04-observability-slo) | Multi-window burn-rate alerting with unit-tested rules, routing, dashboards as code, runbooks and a game day | Prometheus, Alertmanager, Grafana, promtool |
 
-### Projects 05–07 · deeper dives
+### Projects 05–08 · deeper dives
 
-Three independent projects, each going further into one theme. Nothing here imports anything from the series.
+Four independent projects, each going further into one theme. Nothing here imports anything from the series.
 
 | # | Project | What it shows | Core tools |
 |---|---|---|---|
 | 05 | [AI reliability platform](projects/05-ai-reliability-platform) | An AI-backed service that keeps answering when a provider fails: retries, circuit breaker, fallback, per-tenant limits, plus a measured outage drill | Python, Docker, Kubernetes, Terraform, Prometheus |
 | 06 | [Self-service platform](projects/06-self-service-platform) | A paved road: one command generates a compliant service, a policy engine checks any repo against rule IDs, and a catalog tracks what exists | Python, Jinja2, Terraform, Kubernetes, OIDC |
 | 07 | [SRE reliability lab](projects/07-sre-reliability-lab) | Reliability as numbers: one SLO file generates the alert rules, an incident simulator replays failures, and chaos runs produce game-day reports | Python, Prometheus, Alertmanager, chaos experiments |
+| 08 | [Disaster recovery autopilot](projects/08-disaster-recovery-autopilot) | When something breaks: alert opens an incident, a playbook restores and verifies, RTO/RPO are checked, and a postmortem draft is written automatically | Python, Alertmanager webhooks, backup/restore, GitHub Issues |
 
 Projects 01 and 04 overlap in topic with 05 and 07, but are independent of them.
 
@@ -62,6 +64,7 @@ Being precise about this is deliberate: nothing below is claimed unless it has b
 | 05 | 40 unit and end-to-end tests, image build and scan, Terraform checks; provider-outage drill | GitHub Actions, local |
 | 06 | 29 tests, scaffold → validate → generated-tests round trip, Terraform checks | GitHub Actions |
 | 07 | Lint, SLO validation, 33 tests including live chaos experiments, promtool rule checks | GitHub Actions |
+| 08 | Lint, playbook validation, 35 tests, two disaster-recovery drills (restore succeeds; corrupt backups refused and escalated) with their postmortem drafts committed | Local; CI workflow added, first run pending |
 
 **Not proven anywhere yet:** applying any Terraform to a real AWS account, an Argo CD sync on a real cluster,
 Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` against the published image.
@@ -75,16 +78,17 @@ for converting each of those into evidence.
 ```
 projects-2026/
 ├── projects/
-│   ├── 00-start-here/                  guide to all seven, end-to-end diagram, evidence
+│   ├── 00-start-here/                  guide to all eight, end-to-end diagram, evidence
 │   ├── 01-secure-cicd-pipeline/        release-tracker service, Dockerfile, CI/CD with scan, SBOM, signing
 │   ├── 02-aws-terraform-platform/      OpenTofu modules (network, ECS service), dev/prod, OIDC bootstrap
 │   ├── 03-k8s-gitops/                  Kustomize overlays, Argo CD apps, policy checker
 │   ├── 04-observability-slo/           burn-rate rules, Alertmanager, Grafana, runbooks, game day
 │   ├── 05-ai-reliability-platform/     gateway app, tests, k8s, terraform, observability, drill report
 │   ├── 06-self-service-platform/       platformctl, policies, terraform module, examples, catalog
-│   └── 07-sre-reliability-lab/         slogen, chaos runner, demo service, observability, game days
+│   ├── 07-sre-reliability-lab/         slogen, chaos runner, demo service, observability, game days
+│   └── 08-disaster-recovery-autopilot/ drpilot responder, recovery playbooks, drills, postmortem drafts
 ├── .github/workflows/                  one workflow per project (0N-*.yml), path-filtered to its folder
-├── assets/linkedin/                    1080x1350 cards and a PDF carousel per project
+├── assets/linkedin/                    1080x1350 cards and a PDF carousel per project (none yet for 08)
 └── scripts/                            diagram rendering, card building, offline verification
 ```
 

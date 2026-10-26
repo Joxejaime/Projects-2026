@@ -1,0 +1,73 @@
+name: 08 - Disaster recovery autopilot
+
+# Monorepo workflow: runs only when this project (or this file) changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "projects/08-disaster-recovery-autopilot/**"
+      - ".github/workflows/08-disaster-recovery-autopilot.yml"
+  pull_request:
+    paths:
+      - "projects/08-disaster-recovery-autopilot/**"
+      - ".github/workflows/08-disaster-recovery-autopilot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: disaster-recovery-autopilot-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: projects/08-disaster-recovery-autopilot
+
+jobs:
+  verify:
+    name: Lint, playbooks, tests and drills
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt ruff
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Playbooks are valid
+        run: python -m drpilot check
+      - name: Tests (unit, HTTP integration, both drills)
+        run: python -m unittest discover -s tests -t . -v
+      - name: Drill - corrupted data file is restored and verified
+        run: python -m drpilot drill --out "$RUNNER_TEMP/postmortems"
+      - name: Drill - corrupted backups are refused and escalated
+        run: python -m drpilot drill --scenario corrupt-backups --out "$RUNNER_TEMP/postmortems"
+      - name: Replay a sample Alertmanager incident
+        run: python -m drpilot replay examples/replica-lag-firing.json examples/replica-lag-resolved.json --state "$RUNNER_TEMP/state" --postmortems "$RUNNER_TEMP/postmortems"
+      - name: Upload the postmortem drafts this run generated
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postmortem-drafts
+          path: ${{ runner.temp }}/postmortems
+          if-no-files-found: warn
+
+  prometheus-rules:
+    # promtool is downloaded onto the runner rather than running the job inside prom/prometheus:
+    # that image has no Node.js, so actions/checkout cannot run in it.
+    name: Prometheus rule checks
+    runs-on: ubuntu-latest
+    env:
+      PROM_VERSION: "2.55.1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install promtool
+        run: |
+          curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz" | tar -xz
+          mkdir -p "$HOME/bin"
+          cp "prometheus-${PROM_VERSION}.linux-amd64/promtool" "$HOME/bin/"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: promtool check rules
+        run: promtool check rules observability/alert-rules.yml
