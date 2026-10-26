@@ -111,18 +111,10 @@ jobs:
             echo "::error title=Trivy scanner error::$(tail -n 5 trivy.err | tr '\n' ' ')"
             exit 1
           fi
-          trivy --list-all-pkgs --format json --output /out/trivy.json 2>/dev/null
-          meta=$(docker run --rm --entrypoint sh release-tracker:ci -c "find / \( -name '*.dist-info' -o -name '*.egg-info' -o -name '*.whl' -o -name 'METADATA' -o -name 'PKG-INFO' \) -not -path '/proc/*' 2>/dev/null | head -n 12" | tr '\n' ' ')
-          echo "::warning title=Python metadata in final image::${meta:-none}"
-          layers=$(docker inspect release-tracker:ci --format '{{range $i,$l := .RootFS.Layers}}{{$i}}={{slice $l 7 19}} {{end}}')
-          pkgs=$(jq -r '[.Results[]? | select(.Class=="lang-pkgs") | .Packages[]? | select(.Name=="urllib3" or .Name=="setuptools" or .Name=="msgpack") | "\(.Name)@\(.Layer.DiffID[7:19]) \(.Identifier.PURL)"] | join(" ; ")' trivy.json)
-          echo "::warning title=Layers::$layers"
-          echo "::warning title=Flagged pkgs layer::$pkgs"
-          hist=$(docker history --no-trunc --format '{{.CreatedBy}}' release-tracker:ci | cut -c1-90 | head -n 8 | tr '\n' '|')
-          echo "::warning title=Image history::$hist"
+          trivy --format json --output /out/trivy.json 2>/dev/null
           count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy.json)
           echo "HIGH/CRITICAL fixable vulnerabilities: $count"
-          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | "\(.Severity) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) [\(.PkgPath // $t)]"' trivy.json \
+          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | "\(.Severity) \(.VulnerabilityID) \(.PkgName) \(.InstalledVersion) -> \(.FixedVersion) [\($t)]"' trivy.json \
             | head -n 10 | while read -r line; do echo "::error title=Trivy finding::$line"; done
           [ "$count" -eq 0 ]
       - name: Upload scan results
