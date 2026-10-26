@@ -95,14 +95,16 @@ jobs:
           curl -fsS http://127.0.0.1:8080/metrics | grep -q '^app_info'
           docker rm -f rt
       - name: Vulnerability scan (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          image-ref: release-tracker:ci
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
-          format: sarif
-          output: trivy.sarif
+        # Run Trivy from its pinned container image instead of a third-party action:
+        # one less action in the supply chain, and the scanner version is explicit.
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/out" \
+            aquasec/trivy:0.57.1 image \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+            --format sarif --output /out/trivy.sarif \
+            release-tracker:ci
       - name: Upload scan results
         if: always()
         uses: github/codeql-action/upload-sarif@v3
