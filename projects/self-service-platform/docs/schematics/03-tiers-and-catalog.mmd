@@ -1,0 +1,19 @@
+%% title: Reliability tiers and the service catalog
+%% caption: A tier is the only reliability choice a developer makes; defaults for replicas, resources, SLO and disruption budget follow from it (platformctl/models.py TIER_DEFAULTS). The catalog is built by scanning a directory of service.yaml files and running the same validation on each; a duplicate service name is CAT001.
+flowchart LR
+    subgraph tiers["Tier defaults"]
+        direction TB
+        crit["critical<br/>3 replicas<br/>SLO 99.95%<br/>PDB min available 2<br/>cpu 250m-1000m, mem 256-512Mi"]
+        std["standard<br/>2 replicas<br/>SLO 99.9%<br/>PDB min available 1<br/>cpu 100m-500m, mem 128-256Mi"]
+        be["best-effort<br/>1 replica<br/>lighter resources"]
+    end
+
+    svcs["Directory of services<br/>each with service.yaml"] --> collect["catalog.collect"]
+    collect --> val["validate each service<br/>plus duplicate-name check"]
+    val --> md["catalog.md<br/>table: service, owner, tier, SLO,<br/>replicas, environments, spec path"]
+    val --> js["catalog.json"]
+    val --> rc{"Any errors?"}
+    rc -- yes --> r1(["exit 1"])
+    rc -- no --> r0(["exit 0"])
+
+    tiers -. "tier minimums are enforced by<br/>the replica rule K8S009" .-> val

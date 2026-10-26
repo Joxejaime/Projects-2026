@@ -1,0 +1,19 @@
+%% title: Delivery pipeline (GitHub Actions)
+%% caption: .github/workflows/sre-reliability-lab.yml at the repository root. The verify job runs the same checks as make lint, check and test. The promtool job runs Prometheus' own checker on the generated rules, which is the authoritative syntax check that could not be run in the build environment.
+flowchart LR
+    trigger(["push to main or pull request<br/>paths: this project"])
+
+    subgraph verify["Job: verify"]
+        direction TB
+        v1["ruff check + format"] --> v2["slogen check<br/>SLO definitions valid"] --> v3["slogen generate --check<br/>generated rules not stale"] --> v4["validate_configs.py<br/>docker compose config"] --> v5["unittest<br/>unit, simulator, live chaos experiments"]
+    end
+
+    subgraph prom["Job: prometheus-rules (prom/prometheus container)"]
+        direction TB
+        p1["promtool check rules"] --> p2["promtool check config<br/>advisory only"]
+    end
+
+    trigger --> verify
+    trigger --> prom
+    verify --> ok(["Merge allowed"])
+    prom --> ok

@@ -1,0 +1,24 @@
+%% title: From SLO to alerts
+%% caption: slogen/rules.py and slogen/policies.py. An SLO is stated once; the recording rules and the four burn-rate alerts are generated from it, never hand-written. Each alert needs BOTH windows above threshold (burn rate x error budget): the long window proves the burn is significant, the short window proves it is still happening, so the alert clears quickly after a fix.
+flowchart TD
+    def["SLO definition<br/>objective, window 30d, SLI metric + selector<br/>availability: bad / total<br/>latency: 1 - (le bucket / count)"]
+    def --> val["slogen check<br/>validates fields and the latency bucket"]
+    val --> rec["Recording rules per SLO<br/>slo:sli_error:ratio_rate for 5m 30m 1h 2h 6h 1d 3d<br/>slo:error_budget_remaining:ratio<br/>slo:objective:ratio"]
+
+    rec --> fast["FastBurn<br/>1h and 5m above 14.4 x budget<br/>for 2m<br/>PAGE: 2% of budget in 1 h"]
+    rec --> mod["ModerateBurn<br/>6h and 30m above 6 x budget<br/>for 5m<br/>PAGE: 5% of budget in 6 h"]
+    rec --> slow["SlowBurn<br/>1d and 2h above 3 x budget<br/>for 15m<br/>TICKET: 10% of budget in 1 d"]
+    rec --> drift["Drift<br/>3d and 6h above 1 x budget<br/>for 15m<br/>TICKET: 10% of budget in 3 d"]
+
+    fast --> am["Alertmanager"]
+    mod --> am
+    slow --> am
+    drift --> am
+
+    ci["CI: generate --check"] -. "fails if the committed rules<br/>differ from the SLO file" .-> rec
+    sim["slogen simulate"] -. "replays an incident through<br/>these same four policies" .-> fast
+
+    classDef page fill:#ffe0e0,stroke:#c92a2a,color:#7a1c1c
+    classDef ticket fill:#fff3bf,stroke:#b08900,color:#5c4800
+    class fast,mod page
+    class slow,drift ticket

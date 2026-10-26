@@ -1,0 +1,33 @@
+%% title: Request decision flow
+%% caption: The order of checks in gateway/router.py. Each terminal state is a label on gateway_requests_total, which the SLO is computed from. Defaults: 2.0 s request deadline, 0.8 s per attempt, 3 attempts per provider, full-jitter backoff (base 0.05 s, cap 0.4 s).
+flowchart TD
+    start(["POST /v1/chat"]) --> rl{"Tenant under<br/>rate limit?"}
+    rl -- no --> r429a["429 rate_limited"]
+    rl -- yes --> bud{"Tenant has<br/>token budget?"}
+    bud -- no --> r429b["429 budget_exceeded"]
+    bud -- yes --> cache{"Cache hit?"}
+    cache -- yes --> okc["200 outcome=cached"]
+    cache -- no --> p["Try primary provider"]
+
+    p --> pb{"Breaker<br/>allows call?"}
+    pb -- "no, open" --> f["Try fallback provider"]
+    pb -- yes --> pcall["Call provider<br/>attempt timeout 0.8 s"]
+    pcall --> pres{"Result"}
+    pres -- success --> store
+    pres -- "retryable error" --> retry{"Attempts left and<br/>deadline allows?"}
+    retry -- yes --> pcall
+    retry -- no --> f
+    pres -- "not retryable" --> f
+
+    f --> fres{"Fallback<br/>succeeds?"}
+    fres -- yes --> degraded["Store + charge budget<br/>200 outcome=degraded"]
+    fres -- no --> r503["503 upstream_unavailable<br/>outcome=failed"]
+
+    store["Store in cache, charge tokens<br/>200 outcome=ok"]
+
+    classDef good fill:#d8f3dc,stroke:#2d6a4f,color:#1b4332
+    classDef warn fill:#fff3bf,stroke:#b08900,color:#5c4800
+    classDef bad fill:#ffe0e0,stroke:#c92a2a,color:#7a1c1c
+    class okc,store good
+    class degraded warn
+    class r429a,r429b,r503 bad

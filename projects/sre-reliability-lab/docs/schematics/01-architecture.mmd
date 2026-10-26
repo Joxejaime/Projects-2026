@@ -1,0 +1,37 @@
+%% title: System architecture
+%% caption: Everything in the lab, top to bottom: authoring, runtime, experiments. The SLO file drives the alert rules; the demo service gives them something real to measure; the chaos runner injects faults into the service and measures the result from the client side and from the service's own /metrics. The compose stack (make up) runs the service, load generator, Prometheus, Alertmanager and Grafana.
+flowchart TB
+    subgraph author["Authoring"]
+        direction LR
+        slo["slo/shop-api.yaml<br/>3 SLOs, source of truth"] --> slogen["slogen CLI<br/>check, generate, simulate, budget"] -->|generate| rules["generated/shop-api.rules.yml<br/>recording + alert rules"]
+    end
+
+    subgraph runtime["Runtime (docker compose, or make demo for the service alone)"]
+        direction LR
+        load["Load generator<br/>demo/loadgen.py"] --> routes
+        subgraph svc["Demo service: demo/shop.py"]
+            direction TB
+            routes["/checkout and /catalog<br/>simulated work 20-60 ms"]
+            faults["/admin/faults<br/>per-route errors and latency<br/>token gated, lab only"]
+            metrics["/metrics<br/>http_requests_total<br/>http_request_duration_seconds"]
+            faults -. "injects into" .-> routes
+            routes --> metrics
+        end
+        subgraph stack["Monitoring"]
+            direction TB
+            prom["Prometheus"] --> am["Alertmanager<br/>pager / ticket routing"]
+            prom --> graf["Grafana<br/>SLO dashboard"]
+        end
+        metrics -. "scrape" .-> prom
+    end
+
+    subgraph exp["Experiments"]
+        direction LR
+        runner["Chaos runner<br/>chaos/runner.py"] --> report["game-days/*.md<br/>report with verdict"]
+    end
+
+    rules --> prom
+    runner -->|"inject and reset via admin API"| faults
+    runner -->|"test traffic: target + control route"| routes
+    runner -->|"scrape before and after"| metrics
+    slogen -. "projection: would the alert fire?" .-> runner

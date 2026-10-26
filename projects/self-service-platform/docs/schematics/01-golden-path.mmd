@@ -1,0 +1,11 @@
+%% title: The golden path
+%% caption: From a developer's request to a running, compliant service. Generating and validating a repository are implemented and tested here. The pull request, terraform plan, approval and apply half is the intended workflow, generated as files but not exercised end to end.
+flowchart LR
+    dev(["Developer"]) -->|"platformctl new orders-api<br/>--owner team-orders --tier standard"| gen["Generated repository<br/>service.yaml, app/ and tests/<br/>Dockerfile: non-root, pinned base<br/>k8s/deployment.yaml: Deployment, Service, PDB<br/>CI workflow: pinned actions, least privilege<br/>CODEOWNERS, docs/runbook.md"]
+    gen -->|"platformctl validate ."| pol{"Policy check<br/>passes?"}
+    pol -- "errors" --> fix["Fix the listed<br/>rule IDs"]
+    fix --> pol
+    pol -- yes --> pr["Pull request"]
+    dev -->|"platformctl env add<br/>orders-api prod"| tfenv["infra/services/<br/>orders-api-prod.tf"]
+    tfenv --> pr
+    pr --> plan["CI: terraform plan"] --> approve["Platform engineer<br/>approves apply"] --> live["ECR repo, deploy role,<br/>log group, budget"]

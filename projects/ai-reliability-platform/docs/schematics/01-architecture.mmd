@@ -1,0 +1,33 @@
+%% title: System architecture
+%% caption: What runs where. The gateway is one stdlib Python process; Prometheus scrapes it and evaluates the SLO rules in observability/rules/slo.yml, Grafana reads Prometheus. Providers are mocks.
+flowchart LR
+    client["Client / tenant<br/>X-Tenant header"]
+
+    subgraph gw["Gateway process (gateway/)"]
+        direction TB
+        http["HTTP server<br/>/v1/chat  /healthz  /readyz  /metrics<br/>/admin/* lab only, token gated"]
+        core["Router<br/>rate limit, budget, cache, providers"]
+        pbrk["Circuit breaker<br/>primary"]
+        fbrk["Circuit breaker<br/>fallback"]
+        http --> core
+        core --> pbrk
+        core --> fbrk
+    end
+
+    primary["Primary provider<br/>mock, ~120 ms"]
+    fallback["Fallback provider<br/>mock, ~250 ms"]
+
+    subgraph obs["Observability (observability/)"]
+        direction TB
+        prom["Prometheus<br/>scrapes /metrics"]
+        rules["Recording rules +<br/>7 alert rules"]
+        graf["Grafana<br/>provisioned dashboard"]
+        prom --> rules
+        prom --> graf
+    end
+
+    client -->|"POST /v1/chat"| http
+    pbrk --> primary
+    fbrk --> fallback
+    http -. "/metrics" .-> prom
+    rules -. "page / ticket alerts<br/>link to docs/runbooks" .-> oncall["On-call engineer"]

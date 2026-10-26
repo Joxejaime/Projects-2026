@@ -1,0 +1,23 @@
+%% title: Policy-as-code validation
+%% caption: platformctl/policy.py. validate_repo reads service.yaml first (its tier sets the expectations), then checks each file type. Every finding has a stable ID. Errors fail the command (exit 1); warnings fail only with --strict. Policy values default to built-ins and can be overridden with --policy policies/default.yaml; unknown keys are rejected.
+flowchart TD
+    repo(["platformctl validate PATH"]) --> spec{"service.yaml<br/>present?"}
+    spec -- no --> s0["SPEC000 error: stop"]
+    spec -- yes --> specrules["Spec rules SPEC001-SPEC010<br/>required fields, unknown keys, name,<br/>owner team-*, tier, port, replicas, language, SLO"]
+
+    specrules --> k["k8s/*.yaml"]
+    specrules --> d["Dockerfile"]
+    specrules --> w[".github/workflows/*.yml"]
+
+    k --> krules["K8S001 pinned image tag<br/>K8S002 allowed registry<br/>K8S003 resource requests/limits<br/>K8S004 runAsNonRoot<br/>K8S005 no privilege escalation<br/>K8S006 read-only root FS warn<br/>K8S007 readinessProbe<br/>K8S008 not privileged, no host access<br/>K8S009 replicas >= tier minimum<br/>K8S010 required labels<br/>K8S011 livenessProbe warn"]
+    d --> drules["DOCK001 non-root USER<br/>DOCK002 pinned base image<br/>DOCK003 HEALTHCHECK warn<br/>DOCK000 missing file warn"]
+    w --> wrules["CI001 permissions block warn<br/>CI002 action version pin"]
+
+    krules --> out
+    drules --> out
+    wrules --> out
+    out["Findings list<br/>(text or --format json)"] --> exit{"Any errors?<br/>or warnings with --strict?"}
+    exit -- yes --> bad(["exit 1"])
+    exit -- no --> good(["exit 0"])
+
+    pol["policies/default.yaml<br/>allowed registries, required labels,<br/>min replicas by tier"] -.-> krules

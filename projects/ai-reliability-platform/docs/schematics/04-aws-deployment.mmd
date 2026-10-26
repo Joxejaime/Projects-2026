@@ -1,0 +1,38 @@
+%% title: AWS deployment (Terraform)
+%% caption: What terraform/ declares. Not applied in the build environment, so treat it as reviewed but unproven. Without a certificate_arn the ALB forwards plain HTTP on port 80; with one it serves HTTPS on 443 and port 80 redirects to it (301). Tasks run in private subnets and reach the outside world only through the NAT gateway on port 443.
+flowchart TB
+    internet(["Internet clients"]) --> alb
+
+    subgraph vpc["VPC"]
+        subgraph pub["Public subnets"]
+            alb["Application Load Balancer<br/>listener :80, plus :443 if a certificate is set"]
+            nat["NAT gateway + Elastic IP"]
+        end
+        subgraph priv["Private subnets"]
+            direction LR
+            t1["ECS Fargate task<br/>gateway"]
+            t2["ECS Fargate task<br/>gateway"]
+        end
+        alb -->|"security group: ALB to tasks only"| t1
+        alb --> t2
+        t1 -->|"egress 443 only"| nat
+        t2 --> nat
+    end
+
+    nat --> out(["Outbound: AWS APIs and provider endpoints"])
+
+    subgraph support["Supporting resources"]
+        direction LR
+        ecr[("ECR repository<br/>lifecycle policy")]
+        logs["CloudWatch log group<br/>JSON logs from stdout"]
+        asg["App Auto Scaling<br/>target tracking on CPU"]
+        iam["IAM task execution role<br/>and task role"]
+    end
+    support -. "image pull, logs, scaling, permissions" .-> priv
+
+    subgraph alarms["Monitoring"]
+        direction LR
+        al["CloudWatch alarms<br/>ALB 5xx, p95 latency,<br/>unhealthy hosts, CPU high"] --> sns["SNS topic"] --> mail["Email subscription"]
+    end
+    alb -. "metrics" .-> al
+    priv -. "metrics" .-> al

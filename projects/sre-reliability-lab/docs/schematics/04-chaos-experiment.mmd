@@ -1,0 +1,19 @@
+%% title: Chaos experiment lifecycle
+%% caption: chaos/runner.py. The runner refuses to inject unless steady state holds, checks the abort condition every second, always clears the fault, and gives its verdict only after four checks: the fault was visible to clients, it was visible in the service's own metrics, a control route stayed healthy, and the service recovered in time. Exit codes: 0 held, 1 failed, 2 aborted, 3 precondition failed. Traffic threads are always stopped in a finally block.
+flowchart TD
+    start(["Scenario YAML<br/>hypothesis, target, control, fault, abort, recovery"]) --> reset["Reset all faults<br/>start traffic on target and control routes"]
+    reset --> steady{"Steady state holds?<br/>error and slow ratio under limits"}
+    steady -- no --> pre(["PRECONDITION_FAILED<br/>exit 3, nothing was injected"])
+    steady -- yes --> s1["Scrape /metrics (before)<br/>inject fault via admin API"]
+    s1 --> watch{"Checked every second:<br/>error ratio above abort limit?<br/>duration elapsed?"}
+    watch -- "abort limit hit" --> ab["aborted = true"]
+    watch -- "duration elapsed" --> clear
+    ab --> clear["Scrape /metrics (after)<br/>clear the fault"]
+    clear --> rec["Watch recovery<br/>sliding window until healthy, or max seconds"]
+    rec --> checks{"Evaluate the four checks"}
+    checks -- "aborted" --> abortv(["ABORTED<br/>exit 2"])
+    checks -- "all four pass" --> held(["HYPOTHESIS_HELD<br/>exit 0"])
+    checks -- "any check fails" --> failed(["HYPOTHESIS_FAILED<br/>exit 1"])
+    held --> rep["Write report: phases, checks, SLO projection"]
+    failed --> rep
+    abortv --> rep
