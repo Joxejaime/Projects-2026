@@ -76,7 +76,6 @@ what has actually been run versus what has only been written. I'd rather be hire
 |---|---|
 | Email | [castilloajosejaime@gmail.com](mailto:castilloajosejaime@gmail.com) |
 | GitHub | [@Joxejaime](https://github.com/Joxejaime) |
-| LinkedIn | *(add your profile URL here)* |
 | Location | Managua, Nicaragua · open to remote across LatAm |
 
 ---
