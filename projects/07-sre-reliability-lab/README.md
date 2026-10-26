@@ -26,7 +26,7 @@ flowchart LR
 |---|---|
 | SLOs as code: availability and latency SLIs defined as good/valid ratios, validated on load | `slo/shop-api.yaml`, `slogen/model.py` |
 | Multi-window, multi-burn-rate alerting (14.4x / 6x / 3x / 1x, Google SRE Workbook policy) generated, not hand-written | `slogen/policies.py`, `slogen/rules.py`, `generated/shop-api.rules.yml` |
-| CI fails if generated rules are stale relative to the SLO file | `make generate-check`, `.github/workflows/sre-reliability-lab.yml` (repository root) |
+| CI fails if generated rules are stale relative to the SLO file | `make generate-check`, `.github/workflows/07-sre-reliability-lab.yml` (repository root) |
 | Incident simulator: replay an incident, see which alert fires, how late, and how much budget was gone | `slogen/simulate.py` |
 | Chaos experiments with a steady-state precondition, abort guardrail, control route and server-side SLI cross-check | `chaos/runner.py`, `chaos/scenarios/` |
 | Alert routing and inhibition (pages vs tickets) | `observability/alertmanager.yml` |

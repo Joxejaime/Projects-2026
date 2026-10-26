@@ -2,7 +2,7 @@
 %% headline: Stale alert rules fail the build
 %% takeaway: CI regenerates the rules from the SLO file and runs Prometheus' own checker.
 %% legend: entry=Trigger,app=Verify job,guard=Prometheus job,ok=Checks complete
-%% caption: .github/workflows/sre-reliability-lab.yml at the repository root. The verify job runs the same checks as make lint, check and test. The promtool job runs Prometheus' own checker on the generated rules, which is the authoritative syntax check that could not be run in the build environment.
+%% caption: .github/workflows/07-sre-reliability-lab.yml at the repository root. The verify job runs the same checks as make lint, check and test. The promtool job runs Prometheus' own checker on the generated rules, which is the authoritative syntax check that could not be run in the build environment.
 flowchart TB
     trigger(["Push or pull request<br/>touching this project"])
     verify["Job: verify<br/>ruff lint and format<br/>SLO definitions valid<br/>generated rules not stale<br/>config checks, compose file<br/>tests incl. live chaos experiments"]

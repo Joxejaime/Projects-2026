@@ -2,7 +2,7 @@
 %% headline: Every change is linted, tested, scanned and validated
 %% takeaway: Tests, Terraform checks and a Trivy image scan run before anything is released.
 %% legend: entry=Trigger,app=Test job,guard=Terraform job,cloud=Image job,data=Release gate,ok=Done
-%% caption: .github/workflows/ai-reliability-platform.yml at the repository root. The test and terraform jobs run on every push to main and pull request touching this project; the image job waits for tests. Only a tag named ai-reliability-platform-vX.Y.Z publishes to GHCR.
+%% caption: .github/workflows/05-ai-reliability-platform.yml at the repository root. The test and terraform jobs run on every push to main and pull request touching this project; the image job waits for tests. Only a tag named ai-reliability-platform-vX.Y.Z publishes to GHCR.
 flowchart TB
     trigger(["Push or pull request<br/>touching this project"])
     test["Job: test<br/>ruff lint and format<br/>unit and end-to-end tests<br/>config validation<br/>compose file check"]

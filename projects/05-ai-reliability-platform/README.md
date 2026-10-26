@@ -29,7 +29,7 @@ flowchart LR
 | Testing failure paths deterministically (fake clocks, scripted providers) plus real-server E2E tests | `tests/` |
 | Containers and Kubernetes hardening: non-root, read-only FS, probes, HPA, PDB, NetworkPolicy | `Dockerfile`, `k8s/` |
 | Infrastructure as code on AWS: ECS Fargate, ALB, private subnets, autoscaling, CloudWatch alarms | `terraform/` |
-| CI/CD: lint, tests, config validation, image + IaC scanning, provenance and SBOM on release | `.github/workflows/ai-reliability-platform.yml` (repository root) |
+| CI/CD: lint, tests, config validation, image + IaC scanning, provenance and SBOM on release | `.github/workflows/05-ai-reliability-platform.yml` (repository root) |
 | Incident response: runbooks, postmortem template, failure drill with measured results | `docs/runbooks/`, `docs/incident-drill-report.md` |
 
 ## Quick start
