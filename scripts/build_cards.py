@@ -46,7 +46,7 @@ ROLES = {
 
 # Cover and closing copy. Every figure here comes from a measured run or a test count documented in the project.
 PROJECTS = {
-    "ai-reliability-platform": {
+    "05-ai-reliability-platform": {
         "name": "AI reliability platform",
         "tagline": "A gateway that keeps answering when the AI provider goes down.",
         "facts": [
@@ -74,7 +74,7 @@ PROJECTS = {
             "Prometheus firing the alerts live",
         ],
     },
-    "self-service-platform": {
+    "06-self-service-platform": {
         "name": "Self-service platform",
         "tagline": "One command to a service that already follows the rules.",
         "facts": [
@@ -99,7 +99,7 @@ PROJECTS = {
             "A real AWS account",
         ],
     },
-    "sre-reliability-lab": {
+    "07-sre-reliability-lab": {
         "name": "SRE reliability lab",
         "tagline": "Reliability stated as numbers, then tested by breaking things.",
         "facts": [
