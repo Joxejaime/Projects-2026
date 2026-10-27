@@ -28,11 +28,11 @@ jobs:
     name: Lint, SLOs, tests and chaos runs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
-      - run: pip install -r requirements.txt ruff
+      - run: pip install -r requirements.txt ruff==0.17.3
       - name: Lint
         run: ruff check . && ruff format --check .
       - name: SLO definitions are valid
@@ -53,7 +53,7 @@ jobs:
     env:
       PROM_VERSION: "2.55.1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install promtool
         run: |
           curl -fsSL "https://github.com/prometheus/prometheus/releases/download/v${PROM_VERSION}/prometheus-${PROM_VERSION}.linux-amd64.tar.gz" | tar -xz

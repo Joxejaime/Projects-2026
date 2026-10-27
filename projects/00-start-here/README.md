@@ -66,10 +66,10 @@ run in project 04 and the provider-outage drill in project 05, both recorded in 
 Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` against the published image.
 Anything marked "Not run" in a project table has not been executed.
 
-Run everything possible offline for projects 00 to 04, from the repository root:
+Run every offline check, from the repository root:
 
 ```bash
-./scripts/verify-devops-series.sh
+./scripts/verify.sh
 ```
 
 See [`docs/PORTFOLIO-GUIDE.md`](docs/PORTFOLIO-GUIDE.md) for turning this into evidence: screenshots to
