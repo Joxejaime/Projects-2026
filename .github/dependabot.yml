@@ -54,3 +54,18 @@ updates:
     target-branch: staging
     schedule:
       interval: weekly
+  - package-ecosystem: pip
+    directory: /projects/06-self-service-platform
+    target-branch: staging
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /projects/08-disaster-recovery-autopilot
+    target-branch: staging
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/08-disaster-recovery-autopilot/infra/backup-bucket
+    target-branch: staging
+    schedule:
+      interval: weekly

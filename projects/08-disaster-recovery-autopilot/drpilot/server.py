@@ -12,7 +12,19 @@ from .engine import Responder
 MAX_BODY = 1_000_000
 
 
+LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
 def create_server(host: str, port: int, responder: Responder, token: str | None) -> ThreadingHTTPServer:
+    """Build the webhook server.
+
+    Listening beyond loopback without a token is refused here rather than only in the CLI: this
+    endpoint runs recovery playbooks, so an unauthenticated listener on a routable address would
+    let anyone who can reach it trigger them.
+    """
+    if not token and host not in LOOPBACK:
+        raise ValueError(f"refusing to listen on {host!r} without a token; bind to localhost or pass one")
+
     class Handler(BaseHTTPRequestHandler):
         server_version = "drpilot"
 

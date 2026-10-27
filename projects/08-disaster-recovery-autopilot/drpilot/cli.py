@@ -82,10 +82,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "serve":
+        from . import server as server_mod
         from .server import create_server
 
         token = os.environ.get("DRPILOT_TOKEN")
-        if not token and args.host not in ("127.0.0.1", "localhost"):
+        if not token and args.host not in server_mod.LOOPBACK:
             print("refusing to listen beyond localhost without DRPILOT_TOKEN set", file=sys.stderr)
             return 2
         responder = Responder(IncidentStore(args.state), pb.load_dir(args.playbooks), args.postmortems, publisher=_publisher())

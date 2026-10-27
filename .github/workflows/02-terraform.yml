@@ -39,8 +39,8 @@ jobs:
       matrix:
         dir: [bootstrap, envs/dev, envs/prod]
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.13.0
           terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
@@ -64,15 +64,15 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: terraform-linters/setup-tflint@90f302c255ef959cbfb4bd10581afecdb7ece3e6 # v4
       - name: TFLint
         working-directory: ${{ env.TF_DIR }}
         run: |
           tflint --init
           tflint --recursive --minimum-failure-severity=warning
       - name: Checkov
-        uses: bridgecrewio/checkov-action@v12
+        uses: bridgecrewio/checkov-action@c3e106d5f8f4253a6de5110efb41a080f83db294 # v12
         with:
           directory: ${{ env.TF_DIR }}
           framework: terraform
@@ -99,7 +99,7 @@ jobs:
           jq '.runs[].results |= map(select((.suppressions // []) | length == 0))' "$f" > sarif-filtered/checkov.sarif
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@4bfa242aa49c5f7c6770b98670d354a7dfac05f8 # v3
         with:
           sarif_file: sarif-filtered/checkov.sarif
 
@@ -118,12 +118,12 @@ jobs:
       matrix:
         env: [dev, prod]
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.13.0
           terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
@@ -164,12 +164,12 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.13.0
           terraform_wrapper: false # plain binary: plan output is piped through tee, and the wrapper would capture it
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}

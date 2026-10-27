@@ -1,3 +1,6 @@
+# NOTE: this run predates the verifier being extended to all eight projects; it covers 00-04,
+# which is what the script checked at the time. The current script runs 55 checks across 01-08
+# and every project's workflow runs its checks on GitHub Actions.
 # verify.sh output, 2026-10-25T17:28:29Z
 # tools: ruff 0.16.9, hadolint 2.12.0, tofu v1.10.6, kustomize v5.4.3, promtool 3.5.0, amtool 0.28.1, actionlint 1.7.7, shellcheck 0.10.0
 == Project 01: secure CI/CD

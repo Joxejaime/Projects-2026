@@ -94,3 +94,27 @@ def test_publish_failure_never_loses_the_postmortem(make_responder):
 def test_refuses_plain_http_to_remote_hosts():
     with pytest.raises(ValueError):
         GitHubIssuePublisher("me/repo", "tok", api_url="http://evil.example")
+
+
+# --- the listener refuses to come up unauthenticated on a routable address -------------------
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "10.0.0.5", "example.internal"])
+def test_create_server_refuses_tokenless_non_loopback(make_responder, host):
+    """Without a token the endpoint would let anyone who can reach it run recovery playbooks."""
+    with pytest.raises(ValueError, match="without a token"):
+        create_server(host, 0, make_responder(OK_BOOK), None)
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1", "localhost", "::1"])
+def test_create_server_allows_tokenless_loopback(make_responder, host):
+    try:
+        httpd = create_server(host, 0, make_responder(OK_BOOK), None)
+    except OSError:
+        pytest.skip(f"{host} is not bindable in this environment")
+    httpd.server_close()
+
+
+def test_create_server_allows_non_loopback_with_token(make_responder):
+    httpd = create_server("0.0.0.0", 0, make_responder(OK_BOOK), "hook-token")  # noqa: S104 - the point of the test
+    httpd.server_close()

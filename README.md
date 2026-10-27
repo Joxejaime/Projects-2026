@@ -176,10 +176,10 @@ Flow: work branch → pull request into `staging` → checks pass → merge → 
 Automated deployment to a live environment is not wired up yet: the Terraform apply is a manual, reviewer-gated
 workflow run, and it will move onto `staging` once the first real AWS deployment has been done and documented.
 
-Run every offline check for components 00 to 04:
+Run every offline check for all projects:
 
 ```bash
-./scripts/verify-devops-series.sh
+./scripts/verify.sh
 ```
 
 ## Diagrams
