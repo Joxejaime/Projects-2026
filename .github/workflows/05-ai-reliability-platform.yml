@@ -76,7 +76,7 @@ jobs:
         run: echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@v3
       - name: Build image (loaded locally for scanning)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: projects/05-ai-reliability-platform
           load: true
@@ -133,7 +133,7 @@ jobs:
           images: ghcr.io/${{ env.IMAGE_REPO }}/ai-reliability-gateway
       - name: Push release image with provenance and SBOM
         if: startsWith(github.ref, 'refs/tags/ai-reliability-platform-v')
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: projects/05-ai-reliability-platform
           push: true
