@@ -72,6 +72,31 @@ class ScaffoldTests(unittest.TestCase):
             render_service(spec, out, force=True)
 
 
+class CodeOwnerTests(unittest.TestCase):
+    def codeowners(self, **kwargs):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "orders-api"
+            render_service(ServiceSpec(name="orders-api", owner="team-orders"), out, **kwargs)
+            return (out / "CODEOWNERS").read_text()
+
+    def test_default_code_owner_is_a_real_user_not_a_placeholder(self):
+        text = self.codeowners()
+        self.assertNotIn("example-org", text)
+        self.assertIn("*                @Joxejaime", text)
+
+    def test_org_team_code_owner_is_used_everywhere(self):
+        text = self.codeowners(code_owner="@acme/team-orders")
+        rules = [line for line in text.splitlines() if line and not line.startswith("#")]
+        self.assertEqual(len(rules), 3)
+        self.assertTrue(all(line.endswith("@acme/team-orders") for line in rules))
+
+    def test_rejects_malformed_code_owner(self):
+        for bad in ("Joxejaime", "@", "@org/", "@a b", "@@x"):
+            with self.subTest(bad=bad), tempfile.TemporaryDirectory() as tmp:
+                with self.assertRaises(ScaffoldError):
+                    render_service(ServiceSpec(name="x", owner="team-x"), Path(tmp) / "x", code_owner=bad)
+
+
 class EnvironmentTests(unittest.TestCase):
     def test_renders_module_call(self):
         with tempfile.TemporaryDirectory() as tmp:

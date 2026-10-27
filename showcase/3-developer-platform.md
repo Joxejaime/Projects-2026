@@ -29,7 +29,7 @@ must pass. That turns the scaffolding from a template into something with a cont
 
 ## Proven
 
-The workflow runs on GitHub and passes: 29 tests, the full scaffold → validate → generated-tests round trip,
+The workflow runs on GitHub and passes: 32 tests, the full scaffold → validate → generated-tests round trip,
 and Terraform checks on the module and the example environments.
 
 ## Not proven
@@ -38,7 +38,8 @@ The Terraform module has never been applied to a real AWS account. There is no p
 or a web form could sit on top of the CLI. And this is a small purpose-built checker, not a replacement for
 OPA, Kyverno or Conftest at scale.
 
-## Honest placeholder
+## Personal-account defaults
 
-The `CODEOWNERS` template still carries an `@example-org/<team>` handle. GitHub team handles only exist inside
-an organization, so that becomes your org's team, or a personal handle on a personal account.
+The registry (`ghcr.io/joxejaime`) and the generated `CODEOWNERS` owner (`@Joxejaime`) default to this personal
+account. GitHub team handles (`@org/team`) only exist inside an organization, so inside one you would scaffold
+with `--code-owner @<org>/<team>` and `--registry` pointing at the organization's registry.

@@ -11,6 +11,10 @@ from .models import ENV_NAMES, NAME_RE, OWNER_RE, TIER_DEFAULTS, ServiceSpec
 
 TEMPLATES = Path(__file__).parent / "templates"
 REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+# CODEOWNERS entries are `@user` or `@org/team`. Team handles only exist inside a GitHub organization,
+# so the default is the account holder; pass --code-owner @org/team-x when running inside an org.
+DEFAULT_CODE_OWNER = "@Joxejaime"
+CODE_OWNER_RE = re.compile(r"^@[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)?$")
 
 
 class ScaffoldError(Exception):
@@ -33,8 +37,10 @@ def _env() -> Environment:
     )
 
 
-def render_service(spec: ServiceSpec, out_dir: Path, force: bool = False) -> list[Path]:
+def render_service(spec: ServiceSpec, out_dir: Path, force: bool = False, code_owner: str = DEFAULT_CODE_OWNER) -> list[Path]:
     """Create a new service repository from the golden-path templates."""
+    if not CODE_OWNER_RE.match(code_owner):
+        raise ScaffoldError(f"code owner {code_owner!r} must look like '@user' or '@org/team'")
     if out_dir.exists() and any(out_dir.iterdir()) and not force:
         raise ScaffoldError(f"{out_dir} already exists and is not empty (use --force to overwrite)")
     env = _env()
@@ -43,6 +49,7 @@ def render_service(spec: ServiceSpec, out_dir: Path, force: bool = False) -> lis
         "name": spec.name,
         "module": spec.name.replace("-", "_"),
         "owner": spec.owner,
+        "code_owner": code_owner,
         "tier": spec.tier,
         "port": spec.port,
         "replicas": spec.replicas,

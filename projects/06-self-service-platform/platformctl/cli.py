@@ -11,7 +11,7 @@ from . import __version__
 from .catalog import collect, to_json, to_markdown
 from .models import TIER_DEFAULTS, ServiceSpec, validate_fields
 from .policy import load_policy, validate_repo
-from .scaffold import ScaffoldError, render_environment, render_service
+from .scaffold import DEFAULT_CODE_OWNER, ScaffoldError, render_environment, render_service
 
 
 def cmd_new(args: argparse.Namespace) -> int:
@@ -23,7 +23,7 @@ def cmd_new(args: argparse.Namespace) -> int:
     spec = ServiceSpec(name=args.name, owner=args.owner, tier=args.tier, port=args.port, registry=args.registry)
     out = Path(args.out) if args.out else Path(args.name)
     try:
-        files = render_service(spec, out, force=args.force)
+        files = render_service(spec, out, force=args.force, code_owner=args.code_owner)
     except ScaffoldError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -90,6 +90,11 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--tier", default="standard", choices=sorted(TIER_DEFAULTS))
     new.add_argument("--port", type=int, default=8080)
     new.add_argument("--registry", default="ghcr.io/joxejaime")
+    new.add_argument(
+        "--code-owner",
+        default=DEFAULT_CODE_OWNER,
+        help="CODEOWNERS handle: @user, or @org/team inside an organization (default: %(default)s)",
+    )
     new.add_argument("--out", help="output directory (default: ./<name>)")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)

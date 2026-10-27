@@ -64,11 +64,18 @@ Open to **remote roles across Latin America**, not limited to Nicaragua.
 
 - Junior DevOps Engineer / DevOps Engineer
 - Junior Cloud Engineer / AWS Engineer
-- Cloud Support Engineer / Technical Support Engineer
-- Technical Support Specialist
+- Junior Platform or Infrastructure Engineer
+- Junior SRE, where the role is about reliability engineering rather than the pager alone
 
 I'm early in the DevOps side of my career and direct about it: this repository is deliberately explicit about
 what has actually been run versus what has only been written. I'd rather be hired on what I can defend.
+
+### How this was built
+
+I built this portfolio with Claude, Anthropic's AI assistant, as a pair programmer. I chose the scope and what each
+component had to prove; Claude drafted much of the code, tests and documentation. The claims in the tables below
+come from checks that actually ran, in GitHub Actions or locally, not from the drafting. Anything I haven't run is
+listed under "Not proven anywhere yet".
 
 ### Contact
 
@@ -93,7 +100,7 @@ Nothing here is claimed unless it has been run. Each component README ends with 
 | [03](projects/03-k8s-gitops) Kubernetes GitOps | `kustomize build`, strict kubeconform validation, policy checks on both overlays, 13 policy tests | GitHub Actions |
 | [04](projects/04-observability-slo) Observability | Drift check, promtool config and rule checks, 8 alert-rule scenarios, amtool, compose validation; one real end-to-end alert run | GitHub Actions, local |
 | [05](projects/05-ai-reliability-platform) AI reliability | 40 unit and end-to-end tests, image build and scan, Terraform checks; provider-outage drill | GitHub Actions, local |
-| [06](projects/06-self-service-platform) Developer platform | 29 tests, scaffold → validate → generated-tests round trip, Terraform checks | GitHub Actions |
+| [06](projects/06-self-service-platform) Developer platform | 32 tests, scaffold → validate → generated-tests round trip, Terraform checks | GitHub Actions |
 | [07](projects/07-sre-reliability-lab) SRE lab | Lint, SLO validation, 33 tests including live chaos experiments, promtool rule checks | GitHub Actions |
 | [08](projects/08-disaster-recovery-autopilot) DR autopilot | Lint, playbook validation, 85 pytest tests against a real PostgreSQL 16 server, three recovery drills with their postmortem drafts committed | GitHub Actions, local |
 

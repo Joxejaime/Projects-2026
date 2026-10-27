@@ -1,4 +1,7 @@
-# Changes to the service spec and deployment config need the owning team's review.
-*                @example-org/team-orders
-/service.yaml    @example-org/team-orders
-/k8s/            @example-org/team-orders
+# Changes to the service spec and deployment config need the code owner's review.
+# Owning team (see service.yaml): team-orders. GitHub team handles (@org/team) only exist inside an
+# organization; on a personal account the code owner is a user. Inside an org, scaffold with
+# --code-owner @<org>/team-orders.
+*                @Joxejaime
+/service.yaml    @Joxejaime
+/k8s/            @Joxejaime

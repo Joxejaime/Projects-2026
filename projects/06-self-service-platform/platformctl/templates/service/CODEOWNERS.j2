@@ -1,4 +1,7 @@
-# Changes to the service spec and deployment config need the owning team's review.
-*                @example-org/[[ owner ]]
-/service.yaml    @example-org/[[ owner ]]
-/k8s/            @example-org/[[ owner ]]
+# Changes to the service spec and deployment config need the code owner's review.
+# Owning team (see service.yaml): [[ owner ]]. GitHub team handles (@org/team) only exist inside an
+# organization; on a personal account the code owner is a user. Inside an org, scaffold with
+# --code-owner @<org>/[[ owner ]].
+*                [[ code_owner ]]
+/service.yaml    [[ code_owner ]]
+/k8s/            [[ code_owner ]]

@@ -80,7 +80,7 @@ writes the module call; see [`infra/services/`](infra/services) for two generate
 ## Quality
 
 ```bash
-make test       # 29 tests: scaffold, policy rules (table-driven), CLI exit codes, catalog, env generation
+make test       # 32 tests: scaffold, policy rules (table-driven), CLI exit codes, catalog, env generation
 make lint
 make demo       # scaffold -> validate -> run the generated service's own tests
 ```
@@ -93,9 +93,9 @@ exactly that finding.
 
 | Verified (run in the build environment) | Not verified |
 |---|---|
-| All 29 tests, lint, scaffold -> validate -> generated tests round trip | Terraform module and `infra/services` not run through `terraform validate`/`apply` (CI runs both) |
+| All 32 tests, lint, scaffold -> validate -> generated tests round trip | Terraform module and `infra/services` not run through `terraform validate`/`apply` (CI runs both) |
 | Example outputs in `docs/examples/` are real tool output | Generated Dockerfile build and Kubernetes manifests not applied to a cluster |
-| | Registry defaults to `ghcr.io/joxejaime` and the example repositories are under `Joxejaime/`. The `@example-org/<team>` handle in generated `CODEOWNERS` is still a placeholder: GitHub team handles only exist in a GitHub organization, so replace it with your org (or with `@Joxejaime` on a personal account) |
+| | Registry defaults to `ghcr.io/joxejaime` and the example repositories are under `Joxejaime/`, so the defaults only fit a personal account. Generated `CODEOWNERS` names `@Joxejaime`, because GitHub team handles (`@org/team`) only exist in an organization; inside one, scaffold with `--code-owner @<org>/<team>` |
 
 ## Scope and next steps
 Python services only (the template layer is built for adding languages); `validate` is a focused rule set,
