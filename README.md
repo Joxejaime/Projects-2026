@@ -49,14 +49,14 @@ same rules audit any existing repository by rule ID.
 
 I'm **Jaime Castillo Araujo**, based in Managua, Nicaragua.
 
-I work in production support — currently **Tech Support Specialist Level 2 at Ibex**, supporting a point-of-sale
-SaaS platform, promoted from Level 1 after a year. Alongside that I've worked as a **freelance DevOps and cloud
-consultant since 2023**.
+I'm a DevOps and cloud engineer, and I've worked as a **freelance DevOps and cloud consultant since 2023**. I came
+to it through production support: **Tech Support Specialist at Ibex**, supporting a point-of-sale SaaS platform,
+promoted from Level 1 to Level 2 after a year.
 
-Support is where this portfolio comes from. Spending your day on the receiving end of outages teaches you which
-alerts are worth waking someone for, why a runbook matters more than a dashboard, and how much of an incident is
-communication rather than terminal commands. These projects are me building the other side of that: the delivery
-pipelines, the infrastructure and the recovery tooling that decide whether a support queue is calm or on fire.
+That background is where this portfolio comes from. Time on the receiving end of outages teaches you which alerts
+are worth waking someone for, why a runbook matters more than a dashboard, and how much of an incident is
+communication rather than terminal commands. These projects are the next step: building the delivery pipelines,
+the infrastructure and the recovery tooling that decide whether a support queue is calm or on fire.
 
 ### What I'm looking for
 
@@ -72,10 +72,10 @@ what has actually been run versus what has only been written. I'd rather be hire
 
 ### How this was built
 
-I built this portfolio with Claude, Anthropic's AI assistant, as a pair programmer. I chose the scope and what each
-component had to prove; Claude drafted much of the code, tests and documentation. The claims in the tables below
-come from checks that actually ran, in GitHub Actions or locally, not from the drafting. Anything I haven't run is
-listed under "Not proven anywhere yet".
+I direct this work: I decide what to build, what each component has to prove, and what counts as verified. I build
+it together with Claude, Anthropic's AI assistant, which drafts much of the implementation and integration: the
+code, tests, pipelines and documentation. The results in the tables below come from checks that actually ran, in
+GitHub Actions or locally. Anything not yet run is listed under "Not proven anywhere yet".
 
 ### Contact
 
