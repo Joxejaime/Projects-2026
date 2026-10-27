@@ -2,7 +2,7 @@
 # long-lived access keys stored in GitHub secrets.
 
 variable "github_repository" {
-  description = "owner/repo allowed to assume the pipeline roles, e.g. Joxejaime/projects-2026."
+  description = "owner/repo allowed to assume the pipeline roles, e.g. Joxejaime/devops-portfolio."
   type        = string
 
   validation {

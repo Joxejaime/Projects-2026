@@ -25,7 +25,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "linkedin"
-REPO_URL = "github.com/Joxejaime/projects-2026"
+REPO_URL = "github.com/Joxejaime/devops-portfolio"
 AUTHOR = "Jaime Castillo Araujo"
 W, H = 1080, 1350
 PANEL_W, PANEL_H = 920, 820  # drawable area for the diagram inside the white panel
