@@ -116,6 +116,23 @@ Live status of all eight pipelines:
 [![07](https://github.com/Joxejaime/devops-portfolio/actions/workflows/07-sre-reliability-lab.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/07-sre-reliability-lab.yml)
 [![08](https://github.com/Joxejaime/devops-portfolio/actions/workflows/08-disaster-recovery-autopilot.yml/badge.svg?branch=main)](https://github.com/Joxejaime/devops-portfolio/actions/workflows/08-disaster-recovery-autopilot.yml)
 
+### Measured: CI runs on `main`
+
+| Pipeline | Runs | Passed | Typical duration |
+|---|---|---|---|
+| 01 Secure CI/CD | 3 | 2 | 1m 53s |
+| 02 AWS platform (Terraform) | 3 | 3 | 35s |
+| 03 Kubernetes GitOps | 3 | 3 | 24s |
+| 04 Observability | 1 | 1 | 12s |
+| 05 AI reliability | 3 | 3 | 1m 12s |
+| 06 Developer platform | 3 | 3 | 21s |
+| 07 SRE lab | 2 | 2 | 43s |
+| 08 DR autopilot | 1 | 1 | 1m 16s |
+
+Measured on 2026-10-26 from the GitHub Actions API: completed runs on `main`, duration from run start to last
+update, typical = median of the passing runs. Pipelines only run when their own folder changes, so each has few
+runs; the counts grow with every push. Nineteen runs, eighteen passed, and the one failure is in pipeline 01.
+
 **Not proven anywhere yet:** applying any Terraform to a real AWS account, an Argo CD sync on a real cluster,
 Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` against the published image.
 [`projects/00-start-here/docs/PORTFOLIO-GUIDE.md`](projects/00-start-here/docs/PORTFOLIO-GUIDE.md) is the plan

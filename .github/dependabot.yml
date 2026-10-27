@@ -5,8 +5,11 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # Minor and patch updates travel together; a major update gets its own pull request,
+      # so one breaking action cannot hold back the rest.
       actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: docker
     directory: /projects/01-secure-cicd-pipeline
     schedule:
@@ -15,10 +18,18 @@ updates:
     directory: /projects/02-aws-terraform-platform/envs/dev
     schedule:
       interval: weekly
+    ignore:
+      # The v6 bump failed this project's CI checks. Move to 6.x as a deliberate migration, not a bot PR.
+      - dependency-name: "hashicorp/aws"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: terraform
     directory: /projects/02-aws-terraform-platform/envs/prod
     schedule:
       interval: weekly
+    ignore:
+      # The v6 bump failed this project's CI checks. Move to 6.x as a deliberate migration, not a bot PR.
+      - dependency-name: "hashicorp/aws"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /projects/05-ai-reliability-platform
     schedule:

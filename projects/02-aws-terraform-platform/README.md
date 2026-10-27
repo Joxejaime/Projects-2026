@@ -63,6 +63,9 @@ afterwards. Check current AWS pricing before leaving anything running.
 | `terraform plan` / `apply` | **Not run.** They are skipped in CI until AWS role and region variables are configured; run `plan` yourself before relying on this. |
 | Applied to a real AWS account | **No.** Nothing here has been deployed. Treat the first `plan` as the real test and expect to fix small provider-schema details. |
 
+The AWS provider is pinned to `~> 5.80` here on purpose. A Dependabot bump to 6.70 failed this project's CI checks,
+so moving to 6.x is a planned migration. Project 05 already runs on 6.x and passes its own checks.
+
 ### Checkov triage
 The first scan reported 21 findings. None were hidden: every skip sits next to its resource with the reason.
 Accepted as cost/scope trade-offs for a portfolio account: S3 access logging, replication and KMS on the state bucket
