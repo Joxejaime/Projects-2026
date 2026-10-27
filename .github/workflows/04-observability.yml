@@ -2,7 +2,7 @@ name: 04 - Observability and SLOs
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "projects/04-observability-slo/**"
       - ".github/workflows/04-observability.yml"

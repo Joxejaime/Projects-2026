@@ -3,7 +3,7 @@ name: 06 - Self-service platform
 # Monorepo workflow: runs only when this project (or this file) changes.
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "projects/06-self-service-platform/**"
       - ".github/workflows/06-self-service-platform.yml"

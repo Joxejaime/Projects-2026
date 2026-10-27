@@ -2,7 +2,7 @@ name: 01 - Secure CI/CD (release-tracker)
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "projects/01-secure-cicd-pipeline/**"
       - ".github/workflows/01-secure-cicd.yml"

@@ -4,7 +4,7 @@ name: 05 - AI reliability platform
 # Release: push a tag like ai-reliability-platform-v0.1.0 to publish the image to GHCR.
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     tags: ["ai-reliability-platform-v*.*.*"]
     paths:
       - "projects/05-ai-reliability-platform/**"

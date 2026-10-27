@@ -3,7 +3,7 @@ name: 07 - SRE reliability lab
 # Monorepo workflow: runs only when this project (or this file) changes.
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "projects/07-sre-reliability-lab/**"
       - ".github/workflows/07-sre-reliability-lab.yml"

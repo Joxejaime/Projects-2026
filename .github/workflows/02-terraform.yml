@@ -2,7 +2,7 @@ name: 02 - Terraform platform
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "projects/02-aws-terraform-platform/**"
       - ".github/workflows/02-terraform.yml"

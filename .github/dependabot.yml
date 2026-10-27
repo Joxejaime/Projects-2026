@@ -2,6 +2,7 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    target-branch: staging
     schedule:
       interval: weekly
     groups:
@@ -12,10 +13,12 @@ updates:
         update-types: ["minor", "patch"]
   - package-ecosystem: docker
     directory: /projects/01-secure-cicd-pipeline
+    target-branch: staging
     schedule:
       interval: weekly
   - package-ecosystem: terraform
     directory: /projects/02-aws-terraform-platform/envs/dev
+    target-branch: staging
     schedule:
       interval: weekly
     ignore:
@@ -24,6 +27,7 @@ updates:
         update-types: ["version-update:semver-major"]
   - package-ecosystem: terraform
     directory: /projects/02-aws-terraform-platform/envs/prod
+    target-branch: staging
     schedule:
       interval: weekly
     ignore:
@@ -32,17 +36,21 @@ updates:
         update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /projects/05-ai-reliability-platform
+    target-branch: staging
     schedule:
       interval: weekly
   - package-ecosystem: terraform
     directory: /projects/05-ai-reliability-platform/terraform
+    target-branch: staging
     schedule:
       interval: weekly
   - package-ecosystem: terraform
     directory: /projects/06-self-service-platform/terraform/modules/service-environment
+    target-branch: staging
     schedule:
       interval: weekly
   - package-ecosystem: pip
     directory: /projects/07-sre-reliability-lab
+    target-branch: staging
     schedule:
       interval: weekly

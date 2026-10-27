@@ -6,7 +6,7 @@ on:
       - "projects/03-k8s-gitops/**"
       - ".github/workflows/03-k8s-gitops.yml"
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - "projects/03-k8s-gitops/**"
       - ".github/workflows/03-k8s-gitops.yml"
