@@ -72,10 +72,11 @@ what has actually been run versus what has only been written. I'd rather be hire
 
 ### How this was built
 
-I direct this work: I decide what to build, what each component has to prove, and what counts as verified. I build
-it together with Claude, Anthropic's AI assistant, which drafts much of the implementation and integration: the
-code, tests, pipelines and documentation. The results in the tables below come from checks that actually ran, in
-GitHub Actions or locally. Anything not yet run is listed under "Not proven anywhere yet".
+I build this with Claude Code, Anthropic's AI coding tool, under strong human oversight. Claude is the working
+tool; the decisions, the review and the control are mine. I decide what gets built and what each component has to
+prove, review the changes, check the repositories, decide what to fix or move, and run and debug the results. I keep
+a human hand on security and control throughout. The results in the tables below come from checks that actually
+ran, in GitHub Actions or locally. Anything not yet run is listed under "Not proven anywhere yet".
 
 ### Contact
 
@@ -141,8 +142,7 @@ devops-portfolio/
 │   ├── 07-sre-reliability-lab/         slogen, chaos runner, demo service, game days
 │   └── 08-disaster-recovery-autopilot/ drpilot, playbooks, data checks, postmortem drafts
 ├── .github/workflows/                  one workflow per component, path-filtered to its folder
-├── assets/linkedin/                    1080x1350 cards and carousel PDFs built from the diagrams
-└── scripts/                            diagram rendering, card building, offline verification
+└── scripts/                            diagram rendering, offline verification
 ```
 
 GitHub only runs workflows from the repository root, so each pipeline lives in
@@ -162,7 +162,6 @@ To change one, edit its `.mmd` file and run:
 
 ```bash
 python3 scripts/build_schematics.py     # needs mermaid-cli (mmdc)
-python3 scripts/build_cards.py          # needs Playwright with Chromium and the Inter font
 ```
 
 ## License
