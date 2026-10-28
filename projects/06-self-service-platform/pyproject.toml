@@ -3,7 +3,7 @@ name = "platformctl"
 version = "0.1.0"
 description = "Self-service golden paths, policy guardrails and a service catalog"
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6", "jinja2>=3.1.6"]
+dependencies = ["pyyaml>=6.0.3", "jinja2>=3.1.6"]
 
 [tool.ruff]
 line-length = 130
