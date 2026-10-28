@@ -99,6 +99,10 @@ run "playbook validation (08)" in_dir $D python3 -m drpilot check
 if need_mod pytest "pytest (08, needs PostgreSQL)"; then run "pytest (08)" in_dir $D python3 -m pytest -q; fi
 if need promtool "promtool check rules (08)"; then run "promtool check rules (08)" promtool check rules $D/observability/rules/drpilot.rules.yml; fi
 
+echo "== supply chain"
+run "actions SHA-pinned, dependencies ==" python3 -I scripts/check_supply_chain.py
+run "supply-chain guard mutation tests" in_dir scripts python3 -m unittest test_check_supply_chain
+
 echo "== schematics and workflows"
 if need mmdc "schematics compile"; then
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
