@@ -7,7 +7,11 @@ Two rules, both learned the hard way:
      the publisher can repoint them, and several of these actions run in jobs holding
      `contents: write` or `packages: write`.
 
-  2. Every dependency in a requirements file is pinned with `==`. An unbounded `ruff` turns CI
+  2. Every setup action that downloads a tool pins the tool's version. Pinning the action does not
+     pin what it installs: `setup-tflint` defaults to the latest TFLint, which is how a green
+     pipeline broke overnight with no change to this repository.
+
+  3. Every dependency in a requirements file is pinned with `==`. An unbounded `ruff` turns CI
      red on someone else's release schedule.
 
 Dependabot has twice proposed changes that would undo rule 1, because its branch was cut before
@@ -54,6 +58,41 @@ def check_workflows(root: pathlib.Path) -> list[str]:
     return problems
 
 
+# Actions that download a tool and default to "latest" unless told otherwise. Pinning the action
+# does not pin what it installs, which is how a TFLint release once broke a green pipeline.
+TOOL_SETUP_ACTIONS = {
+    "terraform-linters/setup-tflint": "tflint_version",
+    "hashicorp/setup-terraform": "terraform_version",
+    "opentofu/setup-opentofu": "tofu_version",
+}
+
+
+def check_tool_versions(root: pathlib.Path) -> list[str]:
+    problems = []
+    for wf in sorted((root / ".github" / "workflows").glob("*.yml")):
+        lines = wf.read_text().splitlines()
+        for n, line in enumerate(lines):
+            m = USES_RE.match(line)
+            if not m:
+                continue
+            action = m.group(1).split("@", 1)[0]
+            key = TOOL_SETUP_ACTIONS.get(action)
+            if not key:
+                continue
+            # Look ahead over this step's `with:` block for the version input.
+            block = []
+            for nxt in lines[n + 1 :]:
+                if USES_RE.match(nxt) or re.match(r"^\s*- name:", nxt):
+                    break
+                block.append(nxt)
+            if not any(f"{key}:" in b for b in block):
+                problems.append(
+                    f"{wf.relative_to(root)}:{n + 1}: '{action}' does not set '{key}', so it "
+                    f"installs the latest release and the job is not reproducible"
+                )
+    return problems
+
+
 def check_requirements(root: pathlib.Path) -> list[str]:
     problems = []
     for req in sorted(root.glob("projects/*/requirements*.txt")):
@@ -70,7 +109,7 @@ def check_requirements(root: pathlib.Path) -> list[str]:
 
 def main() -> int:
     root = pathlib.Path(__file__).resolve().parent.parent
-    problems = check_workflows(root) + check_requirements(root)
+    problems = check_workflows(root) + check_tool_versions(root) + check_requirements(root)
     if problems:
         print(f"Supply-chain guard: {len(problems)} problem(s)\n", file=sys.stderr)
         for p in problems:
@@ -81,7 +120,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    print("Supply-chain guard: all actions SHA-pinned, all requirements pinned with ==")
+    print("Supply-chain guard: actions SHA-pinned, tool versions pinned, requirements pinned with ==")
     return 0
 
 

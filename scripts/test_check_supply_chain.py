@@ -63,6 +63,41 @@ class WorkflowPinning(Sandbox):
         self.assertIn("docker/login-action", problems[0])
 
 
+class ToolVersionPinning(Sandbox):
+    """Pinning the action does not pin what the action downloads."""
+
+    PINNED = (
+        "      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6\n"
+        "        with:\n"
+        "          tflint_version: v0.64.0\n"
+    )
+    UNPINNED = "      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6\n"
+
+    def test_pinned_tool_version_passes(self) -> None:
+        self.workflow(self.PINNED)
+        self.assertEqual(guard.check_tool_versions(self.tmp), [])
+
+    def test_unpinned_tflint_is_caught(self) -> None:
+        """The real regression: a TFLint release broke a green pipeline with no change here."""
+        self.workflow(self.UNPINNED)
+        problems = guard.check_tool_versions(self.tmp)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("tflint_version", problems[0])
+
+    def test_unpinned_terraform_is_caught(self) -> None:
+        self.workflow("      - uses: hashicorp/setup-terraform@abc\n")
+        self.assertIn("terraform_version", guard.check_tool_versions(self.tmp)[0])
+
+    def test_a_later_step_does_not_satisfy_an_earlier_one(self) -> None:
+        """The version input must belong to that step, not merely appear somewhere below it."""
+        self.workflow(self.UNPINNED + "      - name: TFLint\n        run: tflint_version is not an input here\n")
+        self.assertEqual(len(guard.check_tool_versions(self.tmp)), 1)
+
+    def test_unrelated_actions_are_ignored(self) -> None:
+        self.workflow("      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4\n")
+        self.assertEqual(guard.check_tool_versions(self.tmp), [])
+
+
 class RequirementPinning(Sandbox):
     def test_exact_pin_passes(self) -> None:
         self.requirements("pyyaml==6.0.3\njinja2==3.1.6\n")
@@ -89,7 +124,10 @@ class RequirementPinning(Sandbox):
 
 class RealRepository(unittest.TestCase):
     def test_this_repository_currently_passes(self) -> None:
-        self.assertEqual(guard.check_workflows(ROOT) + guard.check_requirements(ROOT), [])
+        self.assertEqual(
+            guard.check_workflows(ROOT) + guard.check_tool_versions(ROOT) + guard.check_requirements(ROOT),
+            [],
+        )
 
 
 if __name__ == "__main__":
