@@ -86,7 +86,7 @@ a "recovery time" that was really the window length) and the follow-ups still op
 
 | Verified (run in the build environment) | Not verified (needs a run) |
 |---|---|
-| All 33 tests pass, including live chaos experiments against the demo service | Prometheus actually evaluating the generated rules (no `promtool`, no Prometheus in the build environment) |
+| All 33 tests pass, including live chaos experiments against the demo service; CI syntax-checks the generated rules with `promtool check rules` | Prometheus *evaluating* those rules against real series: `promtool` proves they parse, not that they fire correctly |
 | Generated rules file is reproducible from the SLO file (`--check`) | Alerts **firing** in Alertmanager: the 20 s experiments are far too short; the runner projects alert behaviour with the simulator instead |
 | Simulator and budget maths covered by tests and exercised from the CLI | `docker compose up` (no Docker daemon was available); only `docker compose config` was run |
 | Config checks: rule file structure, dashboard JSON, compose file | Grafana rendering with real data |
