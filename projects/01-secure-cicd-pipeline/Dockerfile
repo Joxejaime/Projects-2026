@@ -27,6 +27,12 @@ COPY --chown=app:app app/server.py ./server.py
 # that read layers (Trivy did) keep reporting packages that no longer exist in the running image.
 # Copying the finished filesystem into a new layer makes the image contain exactly what runs.
 FROM scratch AS runtime
+# DL3067 warns against copying a whole filesystem between stages, because it usually means the
+# multi-stage split bought nothing. Here it is the entire point: deleting files in a later layer
+# only hides them, so the scanner kept reporting packages that no longer existed at runtime.
+# Copying the cleaned filesystem into one fresh layer makes the scanned image exactly the image
+# that runs. There is no narrower COPY that achieves that.
+# hadolint ignore=DL3067
 COPY --from=prepare / /
 
 ARG APP_VERSION=dev
