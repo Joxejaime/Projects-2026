@@ -66,6 +66,11 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6
+        with:
+          # Without this the action installs the LATEST tflint, so the binary floats day to day
+          # even though the action itself is SHA-pinned. It must stay compatible with the aws
+          # ruleset version in .tflint.hcl.
+          tflint_version: v0.64.0
       - name: TFLint
         working-directory: ${{ env.TF_DIR }}
         run: |
@@ -157,8 +162,11 @@ jobs:
     needs: [static, security]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # The named Environment carries required reviewers; the OIDC trust policy only
-    # accepts tokens whose subject is repo:<owner>/<repo>:environment:*.
+    # Two independent controls, and both are needed. The Environment carries the required
+    # reviewers and the deployment-branch rule (apply only from main); the OIDC trust policy
+    # accepts only `repo:<owner>/<repo>:environment:<this one>`, matched exactly. The token
+    # for an environment job does not carry the branch, so the branch half cannot live in
+    # IAM. AWS_APPLY_ROLE_ARN is set per Environment so each gets only its own role.
     environment: ${{ inputs.apply_env }}
     permissions:
       contents: read

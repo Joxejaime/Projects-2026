@@ -72,5 +72,9 @@ Run every offline check, from the repository root:
 ./scripts/verify.sh
 ```
 
+[`docs/ENGINEERING-NOTES.md`](docs/ENGINEERING-NOTES.md) covers three problems from building this that
+needed an explanation rather than a patch: why deleting a file from a Docker image does not remove it, a lint
+rule that is right in general and wrong here, and how Dependabot can quietly undo a hardening pass.
+
 See [`docs/PORTFOLIO-GUIDE.md`](docs/PORTFOLIO-GUIDE.md) for turning this into evidence: screenshots to
 capture, resume bullet templates, interview talk tracks, and honest limitations worth volunteering.
