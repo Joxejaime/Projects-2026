@@ -138,6 +138,10 @@ Grafana rendering the dashboard, the Docker Compose stacks, and `cosign verify` 
 [`projects/00-start-here/docs/PORTFOLIO-GUIDE.md`](projects/00-start-here/docs/PORTFOLIO-GUIDE.md) is the plan
 for turning each of those into evidence.
 
+[`ENGINEERING-NOTES.md`](projects/00-start-here/docs/ENGINEERING-NOTES.md) writes up three problems from
+building this where the reasoning mattered more than the patch — a Docker layer model that was wrong, a
+lint rule worth suppressing on purpose, and a hardening pass Dependabot nearly reverted twice.
+
 ---
 
 ## Repository layout
