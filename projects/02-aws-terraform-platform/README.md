@@ -32,8 +32,11 @@ scripts/check_wiring.py   static module-wiring checker that needs no provider do
   state bucket versioned, encrypted, public-access-blocked, TLS-only; non-root, read-only-rootfs container.
 - **Safe delivery:** circuit-breaker rollback on failed deployments, autoscaling that owns the replica
   count (`ignore_changes`), separate task *execution* and *task* roles (task role starts empty).
-- **Keyless CI auth:** GitHub OIDC; the plan role is read-only, the apply role can only be assumed by
-  jobs that target a protected GitHub Environment. The apply policy has no default on purpose.
+- **Keyless CI auth:** GitHub OIDC, no stored access keys. Subjects are matched with `StringEquals`
+  and no wildcard: the plan role trusts only `pull_request` jobs, and there is **one apply role per
+  environment** trusting only that environment. The apply policy has no default on purpose.
+  The branch half of the rule lives on the GitHub Environment, not in IAM — see
+  [`docs/github-setup.md`](docs/github-setup.md), which is required reading before the first apply.
 - **Native S3 state locking** (`use_lockfile`, generally available from Terraform 1.11), so no DynamoDB table to run.
 
 ## Use it
@@ -42,6 +45,7 @@ scripts/check_wiring.py   static module-wiring checker that needs no provider do
 cd bootstrap
 terraform init && terraform apply -var state_bucket_name=<unique> -var github_repository=<you>/<repo> \
   -var 'apply_policy_arns=["arn:aws:iam::<account>:policy/<scoped-policy>"]'
+# then wire up GitHub: see docs/github-setup.md (environments, deployment branches, variables)
 
 # 2. an environment
 cd ../envs/dev
