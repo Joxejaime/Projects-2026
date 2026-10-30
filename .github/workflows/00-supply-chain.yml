@@ -1,7 +1,7 @@
 name: 00 - Supply chain guard
 
-# Runs on every change to the pinning surface. Dependabot has twice opened pull requests that
-# would turn a commit SHA back into a mutable tag, because the branch was cut before the pins
+# Runs on every pull request, and on pushes that touch the pinning surface. Dependabot has twice
+# opened pull requests that would turn a commit SHA back into a mutable tag, because the branch was cut before the pins
 # landed; this makes that impossible to merge by accident.
 on:
   push:
@@ -11,12 +11,9 @@ on:
       - "**/requirements*.txt"
       - "scripts/check_supply_chain.py"
       - "scripts/test_check_supply_chain.py"
+  # No paths filter here on purpose: this job is a required status check on main, and a required
+  # check skipped by a path filter never reports, which leaves the pull request stuck.
   pull_request:
-    paths:
-      - ".github/workflows/**"
-      - "**/requirements*.txt"
-      - "scripts/check_supply_chain.py"
-      - "scripts/test_check_supply_chain.py"
   workflow_dispatch:
 
 permissions:
