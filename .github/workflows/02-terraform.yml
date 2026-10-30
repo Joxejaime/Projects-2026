@@ -66,6 +66,11 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6
+        with:
+          # Without this the action installs the LATEST tflint, so the binary floats day to day
+          # even though the action itself is SHA-pinned. It must stay compatible with the aws
+          # ruleset version in .tflint.hcl.
+          tflint_version: v0.64.0
       - name: TFLint
         working-directory: ${{ env.TF_DIR }}
         run: |

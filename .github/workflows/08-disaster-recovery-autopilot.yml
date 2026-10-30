@@ -80,6 +80,11 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate
       - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6
+        with:
+          # Without this the action installs the LATEST tflint, so the binary floats day to day
+          # even though the action itself is SHA-pinned. It must stay compatible with the aws
+          # ruleset version in .tflint.hcl.
+          tflint_version: v0.64.0
       - name: TFLint
         working-directory: projects/08-disaster-recovery-autopilot/infra/backup-bucket
         run: |
