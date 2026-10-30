@@ -148,7 +148,7 @@ is what the RPO check reads.
 | 85 tests pass: engine, playbooks, renderer, server, publisher, and real-PostgreSQL 16 tests of snapshot, restore, validation, restore-test and the service | **Terraform:** `infra/backup-bucket` has never had `fmt`, `validate` or TFLint run (no Terraform binary here); CI will, and has not yet |
 | All three drills run end to end against a real PostgreSQL server; their drafts are committed | **AWS:** nothing was applied or stored; the S3 store is tested only against a stand-in `aws` script that checks the commands drpilot issues, not against S3 |
 | Corrupt and poisoned snapshots are skipped; with none left the restore refuses and touches nothing | **`infra-reapply-dev` and `k8s-rollback-crashloop`** run only against stub `terraform`/`kubectl`: argument order, the path into 02/03, and that prod is not matched |
-| `drpilot serve` rejects unauthenticated webhooks and answers bad input with 400 (tests) | **Prometheus and Alertmanager:** `promtool` was not available, so the alert rules are not syntax-checked yet (CI does); the Alertmanager snippet is checked structurally by merging it into 04's real file, never run in a real Alertmanager |
+| `drpilot serve` rejects unauthenticated webhooks and answers bad input with 400 (tests) | **Prometheus and Alertmanager:** CI syntax-checks the alert rules with `promtool check rules`; the Alertmanager snippet is checked structurally by merging it into 04's real file, and neither has run in a live Alertmanager |
 | Alert rules, playbooks and runbooks agree with each other and with 04's rule files (a test) | **Real incidents:** none exist, so no draft here describes one |
 
 ## Limitations and next steps

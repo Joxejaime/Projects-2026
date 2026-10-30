@@ -61,9 +61,9 @@ afterwards. Check current AWS pricing before leaving anything running.
 ## Verification status
 | Check | Status |
 |---|---|
-| `fmt -check` (parses all HCL) | Run: pass, with OpenTofu 1.10.6 before the switch to Terraform. The HCL is the same; `terraform fmt` has not been run on it yet. |
+| `fmt -check` (parses all HCL) | Run: pass. CI runs `terraform fmt -recursive -check -diff` on every change and it passes; an earlier local run used OpenTofu 1.10.6 on the same HCL. |
 | `scripts/check_wiring.py` (arguments match module variables, required vars supplied, outputs exist) | Run: pass; also proven to catch 4 injected mistakes |
-| GitHub Actions on the pull request: `terraform fmt`, wiring check, `terraform init` (no backend) + `validate` for `bootstrap`, `envs/dev` and `envs/prod`; TFLint; Checkov | **Passed on GitHub with OpenTofu 1.10.6. The workflow now uses Terraform 1.13.0 and `required_version` is `>= 1.11.0`; that run is pending.** Validation checks syntax and provider schemas, not real AWS behaviour. Checkov's first 21 findings were triaged: each is skipped inline (`#checkov:skip=ID:reason`) with a written reason, and the scan stays report-only (`soft_fail`) until you decide to make it gate merges. |
+| GitHub Actions on the pull request: `terraform fmt`, wiring check, `terraform init` (no backend) + `validate` for `bootstrap`, `envs/dev` and `envs/prod`; TFLint; Checkov | **Run on GitHub with Terraform 1.13.0: pass.** (`required_version` is `>= 1.11.0`; an earlier run used OpenTofu 1.10.6 on the same HCL.) Validation checks syntax and provider schemas, not real AWS behaviour. Checkov's first 21 findings were triaged: each is skipped inline (`#checkov:skip=ID:reason`) with a written reason, and the scan stays report-only (`soft_fail`) until you decide to make it gate merges. |
 | `terraform plan` / `apply` | **Not run.** They are skipped in CI until AWS role and region variables are configured; run `plan` yourself before relying on this. |
 | Applied to a real AWS account | **No.** Nothing here has been deployed. Treat the first `plan` as the real test and expect to fix small provider-schema details. |
 

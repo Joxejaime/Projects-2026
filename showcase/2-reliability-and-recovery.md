@@ -50,12 +50,14 @@ that was refused and escalated rather than restored.
 
 ## Proven
 
-All three workflows run on GitHub and pass: 40 tests plus an image build and scan for 05, 33 tests including
-live chaos experiments plus promtool rule checks for 07, and lint, playbook validation and the 85-test
-PostgreSQL suite for 08. The outage drill (05) and the chaos and recovery drills (07, 08) were run locally and
-their evidence is committed alongside the code.
+All three workflows run on GitHub and pass: 40 tests plus an image build and HIGH/CRITICAL scan for 05;
+33 tests including live chaos experiments against the running demo service, plus `promtool check rules`, for
+07; and lint, playbook validation and the 85-test real-PostgreSQL suite for 08. CI also runs 08's three
+recovery drills end to end on every change and keeps their postmortem drafts as build artifacts. The 05
+provider-outage drill is the one result produced locally, and its evidence is committed.
 
 ## Not proven
 
-Prometheus has never evaluated 07's generated rules live — project 04 covers that case with promtool. The
-Terraform for 08's backup bucket has not been applied, and no part of this has run against real AWS.
+CI syntax-checks 07's and 08's alert rules with `promtool check rules`, which proves they parse — not that
+they fire correctly. No Prometheus has evaluated them against real series. The Terraform for 08's backup
+bucket has not been applied, and no part of this has run against real AWS.

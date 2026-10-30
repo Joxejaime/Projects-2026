@@ -93,7 +93,7 @@ exactly that finding.
 
 | Verified (run in the build environment) | Not verified |
 |---|---|
-| All 32 tests, lint, scaffold -> validate -> generated tests round trip | Terraform module and `infra/services` not run through `terraform validate`/`apply` (CI runs both) |
+| All 32 tests, lint, scaffold -> validate -> generated tests round trip; CI also runs `terraform validate` on the module and the generated environments | `terraform apply`: nothing has been provisioned in a real AWS account |
 | Example outputs in `docs/examples/` are real tool output | Generated Dockerfile build and Kubernetes manifests not applied to a cluster |
 | | Registry defaults to `ghcr.io/joxejaime` and the example repositories are under `Joxejaime/`, so the defaults only fit a personal account. Generated `CODEOWNERS` names `@Joxejaime`, because GitHub team handles (`@org/team`) only exist in an organization; inside one, scaffold with `--code-owner @<org>/<team>` |
 
