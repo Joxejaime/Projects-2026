@@ -2,8 +2,16 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: release-tracker
+  annotations:
+    # Redirect plain HTTP to HTTPS. To have cert-manager issue the certificate, add its issuer annotation
+    # (cert-manager.io/cluster-issuer: <your issuer>) in the overlay; otherwise create the TLS secret yourself.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - release-tracker.example.com # patched per environment
+      secretName: release-tracker-tls
   rules:
     - host: release-tracker.example.com # patched per environment
       http:

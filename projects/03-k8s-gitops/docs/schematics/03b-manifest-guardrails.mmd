@@ -2,7 +2,7 @@
 %% headline: Two gates on every rendered manifest
 %% takeaway: Schema validation plus tested policy checks, run on the final YAML.
 %% legend: app=Manifests,guard=Render and gates,data=Tests of the gates,ok=Merge allowed
-%% caption: scripts/policy_check.py and scripts/test_policy_check.py. Overlays are rendered with kustomize, then checked against Kubernetes schemas and a policy script. 13 tests mutate known-good manifests and require the checker to reject them, so the policy is proven able to fail.
+%% caption: scripts/policy_check.py and scripts/test_policy_check.py. Overlays are rendered with kustomize, then checked against Kubernetes schemas and a policy script. 15 tests mutate known-good manifests and require the checker to reject them, so the policy is proven able to fail.
 flowchart TB
   base["k8s/base<br/>Deployment, Service, HPA, PDB,<br/>NetworkPolicy, Ingress, ServiceAccount"]
   dev["overlay dev<br/>1 replica, small HPA, PDB minAvailable 0"]
@@ -19,7 +19,7 @@ flowchart TB
   kb --> kc
   kb --> pc
 
-  tests["test_policy_check.py<br/>13 tests mutate good manifests<br/>and expect the checker to reject them"]
+  tests["test_policy_check.py<br/>15 tests mutate good manifests<br/>and expect the checker to reject them"]
   tests -.->|"proves the checker can fail"| pc
 
   ok(["All gates green: merge allowed"])

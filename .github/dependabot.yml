@@ -69,3 +69,33 @@ updates:
     target-branch: staging
     schedule:
       interval: weekly
+  - package-ecosystem: docker
+    directory: /projects/07-sre-reliability-lab/demo
+    target-branch: staging
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /projects/06-self-service-platform/examples/generated/orders-api
+    target-branch: staging
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/02-aws-terraform-platform/bootstrap
+    target-branch: staging
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/02-aws-terraform-platform/modules/network
+    target-branch: staging
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/02-aws-terraform-platform/modules/ecs-service
+    target-branch: staging
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /projects/06-self-service-platform/infra/services
+    target-branch: staging
+    schedule:
+      interval: weekly

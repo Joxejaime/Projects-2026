@@ -29,10 +29,14 @@ scripts/policy_check.py  executable guardrails; scripts/test_policy_check.py pro
   (`minAvailable: 2` in prod), zone topology spread (hard in prod).
 - **Network least privilege:** default-deny ingress and egress, then only ingress-nginx and monitoring
   may reach port 8080.
+- **Transport and provenance:** the Ingress terminates TLS and redirects HTTP (the policy checker fails a host with
+  no `spec.tls` entry). The promote workflow runs `cosign verify` against the publish workflow's identity before it
+  opens a pull request, and records the image **digest** in the overlay, not just the tag. Not yet run end to end:
+  it needs a published, signed image and a cluster with a TLS secret or cert-manager.
 - **GitOps controls:** AppProject limits repos, namespaces and cluster-scoped kinds; dev auto-syncs and
   self-heals; prod requires an explicit sync after a reviewed merge; HPA-owned replicas are ignored in diffs.
 - **Policy as code with tests:** `policy_check.py` enforces the rules above on the *rendered* manifests,
-  and 13 tests prove it fails on root users, writable filesystems, `:latest`, missing limits/probes/HPA/PDB,
+  and 15 tests prove it fails on root users, writable filesystems, `:latest`, missing limits/probes/HPA/PDB,
   weak Pod Security labels, host networking and a missing default-deny.
 
 ## Use it
@@ -51,7 +55,7 @@ Image names and repository URLs already point at `Joxejaime/devops-portfolio`; c
 |---|---|
 | `kustomize build` for dev and prod (9 resources each) | Run: pass |
 | Policy checks on both rendered overlays | Run: pass |
-| 13 policy tests, including rejection cases | Run: pass |
+| 15 policy tests, including rejection cases | Run: pass |
 | GitHub Actions on the pull request: `kustomize build`, strict kubeconform schema validation (core resources and Argo CD CRDs), policy checks for dev and prod, policy-checker tests | **Run on GitHub: pass.** |
 | Automated image-tag promotion PR (`promote` job) | **Not run yet.** It only runs on `main` after project 01 publishes an image. |
 | Applied to a real cluster / Argo CD sync | **No.** Try it on kind or minikube and record what you see. |

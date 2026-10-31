@@ -98,6 +98,18 @@ class TestPolicyCheck(unittest.TestCase):
 
         self.assertTrue(any("restricted" in e for e in self.mutate(fn)))
 
+    def test_rejects_ingress_without_tls(self):
+        def fn(docs):
+            next(d for d in docs if d["kind"] == "Ingress")["spec"].pop("tls")
+
+        self.assertTrue(any("spec.tls" in e for e in self.mutate(fn)))
+
+    def test_rejects_ingress_host_missing_from_tls(self):
+        def fn(docs):
+            next(d for d in docs if d["kind"] == "Ingress")["spec"]["tls"][0]["hosts"] = ["other.example.com"]
+
+        self.assertTrue(any("spec.tls" in e for e in self.mutate(fn)))
+
     def test_rejects_host_network(self):
         errs = self.mutate(lambda d: deployment(d)["spec"]["template"]["spec"].update(hostNetwork=True))
         self.assertTrue(any("host namespaces" in e for e in errs))

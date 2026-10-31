@@ -43,6 +43,8 @@ jobs:
         env: [dev, prod]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
         with:
           kustomize-version: 5.4.3
@@ -73,6 +75,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
         with:
           kustomize-version: 5.4.3
@@ -91,6 +95,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      packages: read # cosign verify reads the signature from GHCR
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Validate tag format
@@ -98,6 +103,24 @@ jobs:
           TAG: ${{ inputs.image_tag }}
         run: |
           [[ "$TAG" =~ ^sha-[0-9a-f]{40}$ ]] || { echo "tag must look like sha-<40 hex>"; exit 1; }
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+      - name: Verify the image was built and signed by this repository's publish workflow
+        # A tag is only a name. Promote what cosign proves came from workflow 01 on main, and record its
+        # immutable digest so the overlay cannot later point at a different image under the same tag.
+        id: verify
+        env:
+          TAG: ${{ inputs.image_tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/release-tracker"
+          echo "$GH_TOKEN" | cosign login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          result=$(cosign verify "${image}:${TAG}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/01-secure-cicd.yml@refs/heads/main")
+          digest=$(jq -r '.[0].critical.image."docker-manifest-digest"' <<<"$result")
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "could not read a digest from the verified signature"; exit 1; }
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Verified ${image}:${TAG} -> ${digest}"
       - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
         with:
           kustomize-version: 5.4.3
@@ -105,8 +128,13 @@ jobs:
         working-directory: ${{ env.K8S_DIR }}/k8s/overlays/${{ inputs.environment }}
         env:
           TAG: ${{ inputs.image_tag }}
-          OWNER: ${{ github.repository_owner }}
-        run: kustomize edit set image "ghcr.io/${OWNER}/release-tracker:${TAG}"
+          DIGEST: ${{ steps.verify.outputs.digest }}
+        run: |
+          # The overlay names the image in lower case; github.repository_owner keeps its case, and kustomize
+          # matches names exactly, so the original command would have appended a second, unused entry.
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/release-tracker"
+          kustomize edit set image "${image}:${TAG}"
+          kustomize edit set image "${image}@${DIGEST}"
       # The `validate` job checks the repository as it is now. Re-check the manifests as they
       # will be AFTER the bump, so a bad promotion never becomes a pull request.
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5

@@ -40,6 +40,8 @@ jobs:
         dir: [bootstrap, envs/dev, envs/prod]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.13.0
@@ -65,6 +67,8 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6
         with:
           # Without this the action installs the LATEST tflint, so the binary floats day to day
@@ -124,6 +128,8 @@ jobs:
         env: [dev, prod]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.13.0
@@ -173,6 +179,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.13.0
@@ -183,11 +191,15 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
       - name: Init with remote state
         working-directory: ${{ env.TF_DIR }}/envs/${{ inputs.apply_env }}
+        env:
+          APPLY_ENV: ${{ inputs.apply_env }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          STATE_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
         run: |
           terraform init -input=false \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
-            -backend-config="key=release-tracker/${{ inputs.apply_env }}/terraform.tfstate" \
-            -backend-config="region=${{ vars.AWS_REGION || 'us-east-1' }}" \
+            -backend-config="bucket=${STATE_BUCKET}" \
+            -backend-config="key=release-tracker/${APPLY_ENV}/terraform.tfstate" \
+            -backend-config="region=${STATE_REGION}" \
             -backend-config="use_lockfile=true"
       - name: Apply
         working-directory: ${{ env.TF_DIR }}/envs/${{ inputs.apply_env }}
