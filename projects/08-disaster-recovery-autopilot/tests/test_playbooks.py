@@ -60,7 +60,7 @@ def test_most_specific_playbook_wins(tmp_path):
 def test_label_placeholders_refuse_unsafe_values(tmp_path):
     book = pb.load(write_playbook(tmp_path, "l", 'name: l\nmatch: {alertname: A}\nsteps:\n  - name: s\n    run: ["echo", "{label.pod}"]\n'))
     assert pb.render("{label.pod}", book, {"pod": "api-7d9f/x"}) == "api-7d9f/x"
-    for evil in ["a; rm -rf /", "$(id)", "--config=/etc/passwd x", ""]:
+    for evil in ["a; rm -rf /", "$(id)", "--config=/etc/passwd x", "", "-v", "--help", "-rf"]:
         with pytest.raises(pb.PlaybookError):
             pb.render("{label.pod}", book, {"pod": evil})
     with pytest.raises(pb.PlaybookError):

@@ -34,6 +34,15 @@ class DemoServiceFixture(unittest.TestCase):
 
 
 class DemoServiceTests(DemoServiceFixture):
+    def test_negative_content_length_is_rejected_not_waited_on(self):
+        import socket
+
+        base, _ = self.start()
+        port = int(base.rsplit(":", 1)[1])
+        with socket.create_connection(("127.0.0.1", port), timeout=3) as sock:
+            sock.sendall(b"POST /admin/faults HTTP/1.1\r\nHost: x\r\nContent-Length: -1\r\n\r\n")
+            self.assertIn(b"400", sock.recv(200).split(b"\r\n")[0])  # a hang would raise socket.timeout
+
     def test_metrics_expose_the_series_the_slos_use(self):
         base, _ = self.start()
         call(base, "GET", "/checkout")

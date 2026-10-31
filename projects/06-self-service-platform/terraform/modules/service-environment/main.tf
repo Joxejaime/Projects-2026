@@ -11,6 +11,9 @@ locals {
 
   # Production deploys must go through a GitHub *environment* (with required reviewers);
   # lower environments may deploy from main and from release tags.
+  # `ref:refs/tags/v*` is a wildcard on purpose (releases are cut from tags) and it is only as strong as
+  # who can create a tag: anyone with write access can push v* from any commit. Protect the v* tag pattern
+  # with a tag ruleset (restrict creations to maintainers) in every repository that uses a lower environment.
   oidc_subjects = var.environment == "prod" ? [
     "repo:${var.github_repo}:environment:prod",
     ] : [

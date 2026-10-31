@@ -28,7 +28,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from . import __version__
 from .cache import TTLCache
 from .config import Config
-from .limits import BudgetTracker, TenantRateLimiter
+from .limits import BudgetTracker, TenantRateLimiter, TokenBucket
 from .logging_setup import configure
 from .metrics import GatewayMetrics
 from .providers import FaultConfig, MockProvider
@@ -50,6 +50,33 @@ class App:
     metrics: GatewayMetrics
     faults: dict[str, FaultConfig]
     draining: threading.Event = field(default_factory=threading.Event)
+    keys: dict[str, str] = field(default_factory=dict)  # api key -> tenant; empty = unauthenticated lab mode
+    global_bucket: TokenBucket | None = None
+    global_lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def global_allow(self) -> bool:
+        if self.global_bucket is None:
+            return True
+        with self.global_lock:
+            return self.global_bucket.allow()
+
+    def tenant_for_key(self, supplied: str) -> str | None:
+        """Constant-time lookup: compare against every key so timing does not reveal which one matched."""
+        found = None
+        for key, tenant in self.keys.items():
+            if hmac.compare_digest(supplied.encode(), key.encode()):
+                found = tenant
+        return found
+
+
+def parse_api_keys(raw: str) -> dict[str, str]:
+    keys: dict[str, str] = {}
+    for entry in filter(None, (part.strip() for part in raw.split(","))):
+        key, sep, tenant = entry.partition(":")
+        if not sep or len(key) < 16 or not TENANT_RE.match(tenant):
+            raise ValueError("GATEWAY_API_KEYS entries must look like '<key of 16+ chars>:<tenant>'")
+        keys[key] = tenant
+    return keys
 
 
 def build_app(config: Config, *, sleep=time.sleep, rng=None) -> App:
@@ -92,7 +119,10 @@ def build_app(config: Config, *, sleep=time.sleep, rng=None) -> App:
         sleep=sleep,
         rng=rng,
     )
-    return App(config, gateway, metrics, faults)
+    bucket = None
+    if config.global_rate_limit_rps > 0:
+        bucket = TokenBucket(config.global_rate_limit_rps, config.global_rate_limit_burst, time.monotonic)
+    return App(config, gateway, metrics, faults, keys=parse_api_keys(config.api_keys), global_bucket=bucket)
 
 
 class BadRequest(Exception):
@@ -162,6 +192,10 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
                 raise BadRequest("invalid Content-Length") from None
+            if length < 0:
+                # int() accepts "-1"; rfile.read(-1) would then block until the client closes the connection.
+                self.close_connection = True
+                raise BadRequest("invalid Content-Length")
             if length > MAX_BODY_BYTES:
                 self.close_connection = True
                 raise BadRequest("request body too large", 413, "payload_too_large")
@@ -204,6 +238,21 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
             return self._json(404, {"error": "not_found", "message": "unknown route"})
 
         def _chat(self) -> int:
+            if app.keys:
+                supplied = self.headers.get("Authorization", "")
+                tenant = app.tenant_for_key(supplied[7:]) if supplied.startswith("Bearer ") else None
+                if tenant is None:
+                    self.close_connection = True  # the body is left unread; do not reuse the connection
+                    raise BadRequest("missing or invalid API key", 401, "unauthorized")
+            else:
+                tenant = self.headers.get("X-Tenant", "anonymous")
+                if not TENANT_RE.match(tenant):
+                    raise BadRequest("X-Tenant must match [A-Za-z0-9_.-]{1,64}")
+            if not app.global_allow():
+                self.close_connection = True
+                self.log_fields["outcome"] = "rate_limited"
+                message = "gateway is over its global request rate"
+                return self._json(429, {"error": "rate_limited", "message": message}, {"Retry-After": "1"})
             body = self._read_json()
             prompt = body.get("prompt")
             if not isinstance(prompt, str) or not prompt.strip():
@@ -213,9 +262,6 @@ def make_handler(app: App) -> type[BaseHTTPRequestHandler]:
             max_tokens = body.get("max_tokens", 64)
             if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or not 1 <= max_tokens <= 512:
                 raise BadRequest("'max_tokens' must be an integer between 1 and 512")
-            tenant = self.headers.get("X-Tenant", "anonymous")
-            if not TENANT_RE.match(tenant):
-                raise BadRequest("X-Tenant must match [A-Za-z0-9_.-]{1,64}")
             self.log_fields["tenant"] = tenant
             try:
                 result = app.gateway.chat(tenant, prompt, max_tokens)

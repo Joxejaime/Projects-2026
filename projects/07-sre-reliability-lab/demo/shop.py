@@ -103,7 +103,14 @@ def make_handler(state: State) -> type[BaseHTTPRequestHandler]:
                 self._json(404, {"error": "not found"})
 
         def do_POST(self) -> None:  # noqa: N802
-            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = -1
+            if length < 0:
+                # rfile.read(-1) blocks until the client closes the connection, before any token check.
+                self.close_connection = True
+                return self._json(400, {"error": "invalid Content-Length"})
             raw = self.rfile.read(min(length, 4096))
             if self.path != "/admin/faults" or not state.admin_token:
                 return self._json(404, {"error": "not found"})
