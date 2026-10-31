@@ -3,3 +3,22 @@ __pycache__/
 .venv/
 .ruff_cache/
 *.tgz
+
+# Secrets and local environment files: never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+
+# Terraform state, variable values and plugin caches (lock files ARE committed)
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.auto.tfvars
+!*.tfvars.example
+.terraform/
+crash.log

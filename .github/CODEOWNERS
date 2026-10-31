@@ -1,0 +1,7 @@
+# Every change needs the owner's review. Workflows and IAM trust policies are called out because
+# they decide who can deploy: a change there should never merge unreviewed.
+*                                   @Joxejaime
+/.github/                           @Joxejaime
+/projects/02-aws-terraform-platform/bootstrap/   @Joxejaime
+/projects/03-k8s-gitops/argocd/     @Joxejaime
+/scripts/check_supply_chain.py      @Joxejaime
