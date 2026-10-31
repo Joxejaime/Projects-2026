@@ -92,6 +92,13 @@ def check(docs: list[dict]) -> list[str]:
             ):
                 errs.append(f"{label}: no PodDisruptionBudget selects this Deployment")
 
+    for ing in by_kind.get("Ingress", []):
+        label = f"Ingress/{ing['metadata']['name']}"
+        tls_hosts = {h for entry in ing["spec"].get("tls", []) for h in entry.get("hosts", [])}
+        for rule in ing["spec"].get("rules", []):
+            if rule.get("host") not in tls_hosts:
+                errs.append(f"{label}: host {rule.get('host')!r} is not covered by a spec.tls entry (plain HTTP)")
+
     namespaces = {d["metadata"]["name"]: d for d in by_kind.get("Namespace", [])}
     used = {d["metadata"].get("namespace") for d in docs if d["kind"] in WORKLOADS}
     for ns in sorted(n for n in used if n):

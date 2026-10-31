@@ -35,7 +35,7 @@ All four workflows run on GitHub and pass.
 
 - **01** — lint, tests, hadolint, gitleaks, image build, container smoke test, Trivy gate, SBOM, GHCR publish by digest, cosign keyless signature, provenance attestation
 - **02** — `fmt`, module wiring check, `init` and `validate` for bootstrap, dev and prod, TFLint, Checkov with its first 21 findings triaged and each skip justified in the code
-- **03** — `kustomize build`, strict kubeconform validation, policy checks on both overlays, 13 policy tests
+- **03** — `kustomize build`, strict kubeconform validation, policy checks on both overlays, 15 policy tests
 - **04** — generated-file drift check, promtool config and rule checks, 8 alert-rule scenarios, amtool, compose validation, plus one real end-to-end run where injected errors fired an alert that reached a webhook
 
 ## Not proven
