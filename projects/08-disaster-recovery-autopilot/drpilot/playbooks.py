@@ -31,7 +31,8 @@ import yaml
 
 from .model import StepResult
 
-SAFE_LABEL = re.compile(r"^[A-Za-z0-9._:/-]{1,128}$")
+# A leading "-" is refused so a label can never be read as an option when it lands in argv as its own word.
+SAFE_LABEL = re.compile(r"^[A-Za-z0-9._:/][A-Za-z0-9._:/-]{0,127}$")
 PLACEHOLDER = re.compile(r"\{([a-z_]+(?:\.[A-Za-z0-9_]+)?)\}")
 OUTPUT_LIMIT = 2000
 

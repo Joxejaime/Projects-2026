@@ -12,6 +12,9 @@ class Config:
     host: str = "0.0.0.0"  # noqa: S104 - container workload, exposure is controlled by the platform
     port: int = 8080
     admin_token: str = ""  # empty => admin endpoints are disabled
+    # "key1:tenant-a,key2:tenant-b". When set, /v1/chat requires `Authorization: Bearer <key>` and the tenant
+    # comes from the key, never from the X-Tenant header. Empty keeps the unauthenticated lab mode.
+    api_keys: str = ""
     request_timeout: float = 2.0
     attempt_timeout: float = 0.8
     max_attempts: int = 3
@@ -21,6 +24,10 @@ class Config:
     breaker_recovery_timeout: float = 15.0
     rate_limit_rps: float = 20.0
     rate_limit_burst: float = 40.0
+    # One bucket shared by every tenant: a client that invents tenant names gets a fresh per-tenant bucket
+    # each time, so only a global ceiling bounds total throughput (and therefore provider spend).
+    global_rate_limit_rps: float = 200.0
+    global_rate_limit_burst: float = 400.0
     tenant_token_budget: int = 100_000
     budget_window_seconds: float = 3600.0
     cache_ttl: float = 300.0

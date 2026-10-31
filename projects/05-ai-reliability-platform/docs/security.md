@@ -16,9 +16,12 @@
   IaC misconfiguration scan (report-only), provenance and SBOM attached to release images.
 
 ## Known gaps (honest list)
-- No authentication or authorization: `X-Tenant` is trusted. Put an authenticating proxy or API
-  gateway in front, or add JWT validation.
-- GitHub Actions are pinned to major version tags, not commit SHAs.
+- Authentication is opt-in. With `GATEWAY_API_KEYS` unset (the lab default) `X-Tenant` is trusted, so a
+  client can mint a fresh rate limit and budget by changing the header; only the global ceiling
+  (`GATEWAY_GLOBAL_RATE_LIMIT_RPS`) bounds total throughput. With `GATEWAY_API_KEYS="<key>:<tenant>,..."` set,
+  `/v1/chat` requires `Authorization: Bearer <key>` and the tenant comes from the key. Keys are static and
+  unrotated, so a real deployment still wants an identity provider or API gateway in front. Never expose the
+  unauthenticated mode beyond a trusted network.
 - Base image is pinned by tag, not digest.
 - No TLS termination in the app; use the ALB (set `certificate_arn`) or an ingress controller.
 - IaC scan findings are report-only until triaged.

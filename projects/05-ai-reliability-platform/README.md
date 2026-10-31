@@ -71,7 +71,7 @@ demonstration of behaviour, not a capacity benchmark.
 | `docker compose config` parses the compose file | Kubernetes manifests applied to a cluster |
 
 ## Limitations and next steps
-Single-process state (rate limits and cache are per instance), no authentication in front of `X-Tenant`,
+Single-process state (rate limits and cache are per instance), authentication is opt-in (`GATEWAY_API_KEYS`; unset, `X-Tenant` is trusted),
 mock providers only, and one failure mode drilled. See [`docs/architecture.md`](docs/architecture.md) and
 [`docs/security.md`](docs/security.md) for the full trade-off and gap lists.
 
